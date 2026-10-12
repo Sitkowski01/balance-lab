@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Testy (jednostkowe, wlasnosci FsCheck, architektura)
+        run: dotnet test
+      - name: Benchmarki uruchamiaja sie (przebieg probny)
+        run: dotnet run -c Release --project benchmarks/BalanceLab.Benchmarks -- --filter '*' --job dry
+      - name: Mutation testing silnika (Stryker, prog 90%)
+        run: |
+          dotnet tool restore
+          dotnet stryker
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stryker-engine
+          path: StrykerOutput/**/reports
