@@ -71,9 +71,9 @@ public sealed class ArchitectureTests
     [MemberData(nameof(DeterministicCore))]
     public void Only_the_optional_mcts_time_budget_reads_the_clock(string project)
     {
-        // Jedyny swiadomy wyjatek: MctsOptions.TimeLimit. Kto go uzywa, rezygnuje z powtarzalnosci.
+        // Jedyny swiadomy wyjatek: MctsOptions.TimeLimit (MCTS i ISMCTS). Kto go uzywa, rezygnuje z powtarzalnosci.
         var result = Types.InAssembly(Assembly.Load(project))
-            .That().DoNotHaveNameStartingWith("MctsBot")
+            .That().DoNotHaveNameStartingWith("MctsBot").And().DoNotHaveNameStartingWith("IsmctsBot")
             .ShouldNot().HaveDependencyOn("System.Diagnostics.Stopwatch")
             .GetResult();
 
