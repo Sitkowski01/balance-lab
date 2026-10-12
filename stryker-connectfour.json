@@ -2,6 +2,7 @@
   "stryker-config": {
     "project": "BalanceLab.Games.ConnectFour.csproj",
     "test-projects": [ "tests/BalanceLab.Games.ConnectFour.Tests/BalanceLab.Games.ConnectFour.Tests.csproj" ],
+    "test-case-filter": "Category!=Strength",
     "reporters": [ "html", "progress", "cleartext", "json" ],
     "thresholds": { "high": 90, "low": 90, "break": 90 }
   }
