@@ -7,5 +7,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/BalanceLab.Engine.Tests/BalanceLab.Engine.Tests.csproj" />
+    <Project Path="tests/BalanceLab.Testing/BalanceLab.Testing.csproj" />
   </Folder>
 </Solution>

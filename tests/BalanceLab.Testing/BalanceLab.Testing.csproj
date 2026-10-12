@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Biblioteka pomocnicza dla testow, sama nie zawiera testow. -->
+  <PropertyGroup>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BalanceLab.Engine\BalanceLab.Engine.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -6,13 +6,11 @@
     <NoWarn>$(NoWarn);CA1707</NoWarn>
   </PropertyGroup>
 
-  <ItemGroup>
+  <!-- Biblioteki pomocnicze (IsTestProject=false) nie potrzebuja SDK testow ani xUnit. -->
+  <ItemGroup Condition="'$(IsTestProject)' != 'false'">
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="xunit" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>
