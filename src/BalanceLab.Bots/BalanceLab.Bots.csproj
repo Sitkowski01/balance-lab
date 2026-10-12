@@ -4,4 +4,8 @@
     <ProjectReference Include="..\BalanceLab.Engine\BalanceLab.Engine.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="BalanceLab.Bots.Tests" />
+  </ItemGroup>
+
 </Project>

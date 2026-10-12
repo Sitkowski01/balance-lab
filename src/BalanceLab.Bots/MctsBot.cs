@@ -100,7 +100,7 @@ public sealed class MctsBot<TState, TMove> : IPlayer<TState, TMove>
     private Node SelectChild(Node node)
     {
         var children = node.Children!;
-        var logVisits = Math.Log(node.Visits);
+        var logVisits = DeterministicMath.Ln(node.Visits);
         var best = children[0];
         var bestValue = double.NegativeInfinity;
         foreach (var child in children)
