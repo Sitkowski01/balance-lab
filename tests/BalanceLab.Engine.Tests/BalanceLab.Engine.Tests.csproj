@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BalanceLab.Engine\BalanceLab.Engine.csproj" />
+    <ProjectReference Include="..\BalanceLab.Testing\BalanceLab.Testing.csproj" />
   </ItemGroup>
 
 </Project>
