@@ -25,6 +25,9 @@ public interface IGame<TState, TMove>
     /// <summary>Stan poczatkowy. To samo <see cref="GameSetup"/> zawsze daje ten sam stan.</summary>
     TState Setup(GameSetup setup);
 
+    /// <summary>Liczba graczy w partii (dlugosc tablicy z <see cref="Scores"/>).</summary>
+    int PlayerCount(TState state);
+
     /// <summary>Indeks gracza na ruchu, od 0.</summary>
     int CurrentPlayer(TState state);
 

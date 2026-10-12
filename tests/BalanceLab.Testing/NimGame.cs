@@ -24,6 +24,8 @@ public sealed class NimGame : IGame<NimState, int>
         return new NimState(10 + extra, setup.PlayerCount, 0, null);
     }
 
+    public int PlayerCount(NimState state) => state.PlayerCount;
+
     public int CurrentPlayer(NimState state) => state.ToMove;
 
     public IReadOnlyList<int> LegalMoves(NimState state) => [.. Enumerable.Range(1, Math.Min(3, state.Pile))];

@@ -17,6 +17,11 @@ public sealed class ConnectFourGame : IGame<ConnectFourState, ConnectFourMove>
             [.. Enumerable.Range(0, ConnectFourState.Columns).Where(c => ((mask >> c) & 1) != 0).Select(c => new ConnectFourMove(c))]),
     ];
 
+    // Wyniki tez gotowe: MCTS pyta o nie na koncu kazdej symulacji.
+    private static readonly ImmutableArray<double> FirstWins = [1.0, 0.0];
+    private static readonly ImmutableArray<double> SecondWins = [0.0, 1.0];
+    private static readonly ImmutableArray<double> Draw = [0.5, 0.5];
+
     public string Name => "ConnectFour";
 
     public int MinPlayers => 2;
@@ -28,6 +33,8 @@ public sealed class ConnectFourGame : IGame<ConnectFourState, ConnectFourMove>
         setup.EnsurePlayers(MinPlayers, MaxPlayers);
         return new ConnectFourState(0, 0, 0, null);
     }
+
+    public int PlayerCount(ConnectFourState state) => 2;
 
     public int CurrentPlayer(ConnectFourState state) => state.MovesPlayed % 2;
 
@@ -64,9 +71,9 @@ public sealed class ConnectFourGame : IGame<ConnectFourState, ConnectFourMove>
 
     public ImmutableArray<double> Scores(ConnectFourState state) => state.Winner switch
     {
-        0 => [1.0, 0.0],
-        1 => [0.0, 1.0],
-        _ when IsTerminal(state) => [0.5, 0.5],
+        0 => FirstWins,
+        1 => SecondWins,
+        _ when IsTerminal(state) => Draw,
         _ => throw new InvalidOperationException("Partia jeszcze trwa."),
     };
 
