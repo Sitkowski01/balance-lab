@@ -228,5 +228,7 @@ public sealed class MctsBotTests
         public ImmutableArray<double> Scores(int state) => throw new InvalidOperationException();
 
         public ulong Hash(int state) => 0;
+
+        public int Determinize(int state, int observer, ulong seed) => state;
     }
 }

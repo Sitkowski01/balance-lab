@@ -51,6 +51,8 @@ public sealed class NimGame : IGame<NimState, int>
     public ulong Hash(NimState state) =>
         StableHash.Empty.Add((ulong)state.Pile).Add((ulong)state.PlayerCount).Add((ulong)state.ToMove)
             .Add((ulong)(state.Winner + 1 ?? 0)).Value;
+
+    public NimState Determinize(NimState state, int observer, ulong seed) => state;
 }
 
 /// <summary>Gracz, ktory zawsze probuje tego samego ruchu, legalnego czy nie.</summary>

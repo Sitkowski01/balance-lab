@@ -80,6 +80,9 @@ public sealed class ConnectFourGame : IGame<ConnectFourState, ConnectFourMove>
     public ulong Hash(ConnectFourState state) =>
         StableHash.Empty.Add(state.First).Add(state.Second).Value;
 
+    /// <summary>Pelna informacja: kazdy widzi cala plansze.</summary>
+    public ConnectFourState Determinize(ConnectFourState state, int observer, ulong seed) => state;
+
     private static bool IsFull(ConnectFourState state, int column) =>
         ((state.First | state.Second) & TopCell(column)) != 0;
 

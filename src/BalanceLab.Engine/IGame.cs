@@ -7,8 +7,8 @@ namespace BalanceLab.Engine;
 /// tylko ten kontrakt, wiec nowa gra nie wymaga zmian w zadnym z nich.
 /// </summary>
 /// <remarks>
-/// Na razie gracz widzi caly stan — dobre dla gier z pelna informacja. Gry z ukrytymi kartami
-/// (Klejnoty) dostana widok gracza i determinizacje razem z ISMCTS.
+/// Gracz nie dostaje prawdziwego stanu, tylko <see cref="Determinize"/> z wlasnego punktu widzenia:
+/// w grach z ukrytymi kartami to, czego nie wie, jest w nim wylosowane od nowa.
 /// </remarks>
 /// <typeparam name="TState">Niemutowalny stan; cala losowosc gry siedzi w nim (np. <see cref="Pcg32"/>).</typeparam>
 /// <typeparam name="TMove">Ruch gracza.</typeparam>
@@ -50,4 +50,12 @@ public interface IGame<TState, TMove>
     /// po nim porownujemy partie i powtorki z dziennika.
     /// </summary>
     ulong Hash(TState state);
+
+    /// <summary>
+    /// Jeden ze stanow, ktore <paramref name="observer"/> moze sobie wyobrazic: to, co widzi, zostaje,
+    /// a to, czego nie widzi (talia, cudze zakryte karty), jest wylosowane z <paramref name="seed"/>.
+    /// Wynik zalezy tylko od wiedzy obserwatora i ziarna: dwa stany, ktorych obserwator nie odroznia,
+    /// daja przy tym samym ziarnie ten sam wynik. Gra z pelna informacja zwraca stan bez zmian.
+    /// </summary>
+    TState Determinize(TState state, int observer, ulong seed);
 }

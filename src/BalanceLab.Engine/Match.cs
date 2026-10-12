@@ -43,7 +43,11 @@ public static class Match
                 return new MatchResult<TState, TMove>(moves.ToImmutable(), state, false, []);
             }
 
-            var move = players[game.CurrentPlayer(state)].ChooseMove(game, state);
+            // Gracz dostaje tylko swoja wiedze: ukryte karty sa w widoku wylosowane od nowa,
+            // wiec bot nie podejrzy talii ani cudzej reki, nawet gdyby chcial.
+            var current = game.CurrentPlayer(state);
+            var view = game.Determinize(state, current, ViewSeed(setup.Seed, moves.Count));
+            var move = players[current].ChooseMove(game, view);
             // Gracz moze byc bledny albo nieuczciwy: Apply sprawdza legalnosc i rzuca IllegalMoveException.
             state = game.Apply(state, move);
             moves.Add(move);
@@ -51,4 +55,13 @@ public static class Match
 
         return new MatchResult<TState, TMove>(moves.ToImmutable(), state, true, game.Scores(state));
     }
+
+    /// <summary>
+    /// Ziarno widoku przed ruchem nr <paramref name="move"/>. Dopisek celu odroznia je od ziarna
+    /// rozdania — inaczej widok moglby wylosowac talie dokladnie tak, jak lezy naprawde.
+    /// </summary>
+    public static ulong ViewSeed(ulong setupSeed, int move) =>
+        StableHash.Empty.Add(setupSeed).Add((ulong)move).Add(ViewPurpose).Value;
+
+    private const ulong ViewPurpose = 0x5649_4557; // "VIEW"
 }
