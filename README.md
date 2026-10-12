@@ -4,21 +4,23 @@ Laboratorium balansu gier planszowych. Zasady gry podpina się jako plugin, boty
 rozgrywają tysiące partii, a raport pokazuje, co jest niezbalansowane: przewagę miejsca
 przy stole, dominujące strategie, za mocne i martwe karty oraz skutki zmian w zasadach.
 
-> Projekt w budowie. Gotowe: kontrakt silnika, deterministyczny generator, Czwórki (ConnectFour)
-> jako pierwsza gra, bot losowy, bot MCTS i symulator turniejów z CLI.
+> Projekt w budowie. Gotowe: kontrakt silnika z ukrytą informacją, deterministyczny generator,
+> Czwórki (ConnectFour) i Klejnoty (gra karciana w stylu Splendora), boty: losowy, heurystyczny,
+> MCTS i ISMCTS, symulator turniejów z CLI.
 
 ## Architektura
 
 ```
 src/BalanceLab.Engine              kontrakt IGame<TState, TMove>, IPlayer, Match, Pcg32, StableHash
 src/BalanceLab.Games.ConnectFour   Czwórki na bitboardach (zna tylko silnik)
-src/BalanceLab.Bots                RandomBot, MctsBot (działają na kontrakcie, nie znają żadnej gry)
+src/BalanceLab.Games.Klejnoty      Klejnoty: zasady, ukryte talie i rezerwacje, ocena pozycji
+src/BalanceLab.Bots                RandomBot, GreedyBot, MctsBot, IsmctsBot (kontrakt, żadnej gry)
 src/BalanceLab.Simulation          turnieje równoległe, statystyki z przedziałami ufności, raport JSON
 src/BalanceLab.Cli                 balance-lab simulate — jedyne miejsce, które składa gry, boty i symulator
 ```
 
 Gra to czyste funkcje na niemutowalnym stanie: `Setup(gracze, ziarno)`, `LegalMoves`, `Apply`
-(nowy stan), `IsTerminal`, `Scores` i `Hash` — stabilny między procesami (FNV-1a), w przeciwieństwie
+(nowy stan), `IsTerminal`, `Scores`, `Determinize` (widok gracza, niżej) i `Hash` — stabilny między procesami (FNV-1a), w przeciwieństwie
 do `GetHashCode`. `Match` rozgrywa partię i nie ufa graczom: o legalności ruchu decyduje `Apply` gry.
 Reguły zależności pilnuje NetArchTest.
 
@@ -48,7 +50,48 @@ Dlugosc partii (ruchy): srednio 21.3, mediana 21, 90% ponizej 31, od 7 do 42
 
 To już jest wynik o balansie: przy losowej grze zaczynający wygrywa w Czwórkach 55% partii,
 a przedział ufności wyklucza 50%. Boty: `random`, `mcts`, `mcts:ITERACJE` — po jednym na miejsce
-przy stole. `--games-out` zapisuje każdą partię (ziarno, miejsca, wynik), więc dowolną da się odtworzyć.
+przy stole (`greedy` i `ismcts[:ITERACJE]` też). `--games-out` zapisuje każdą partię (ziarno, miejsca, wynik), więc dowolną da się odtworzyć.
+
+## Ukryta informacja i ISMCTS
+
+Bot nigdy nie dostaje prawdziwego stanu. `Match` pokazuje mu `Determinize(stan, gracz, ziarno)`:
+to, co gracz widzi, zostaje, a to, czego nie wie (kolejność talii, cudze karty wzięte w ciemno),
+jest wylosowane od nowa. Bot nie podejrzy więc talii, nawet gdyby chciał — w tym widoku
+prawdziwej talii po prostu nie ma.
+
+Kontrakt wymaga, żeby determinizacja zależała **tylko od wiedzy obserwatora**. Test właściwości
+sprawdza to wprost: determinizacja innego układu tego samego zbioru informacji daje bajt w bajt ten sam
+stan. Haczyk, który ten test wyłapuje: karty trzeba posortować przed tasowaniem — inaczej wynik
+zależałby od prawdziwej kolejności talii.
+
+`IsmctsBot` (Information Set MCTS, Cowling i in. 2012) w każdej iteracji losuje inny układ ukrytych
+kart, a wszystkie iteracje budują jedno drzewo indeksowane ruchami. Premia za eksplorację liczy się
+od tego, ile razy ruch był *dostępny*, a nie od odwiedzin rodzica — w różnych układach legalne bywają
+różne ruchy rywala. Na grze testowej z jedną ukrytą kartą (uproszczony poker Kuhna) dwa stany różniące się
+tylko kartą rywala dają identyczne szukanie, a zwykły MCTS na prawdziwym stanie wybiera inaczej.
+
+## Klejnoty
+
+Gra karciana w stylu Splendora: żetony w pięciu kolorach i złoto, 90 kart kopalni na trzech poziomach
+(każda daje stały rabat), patroni za zebrane rabaty, koniec po 15 punktach z dogrywaną rundą.
+Mechanika jest jak w oryginale, ale nazwy i zestaw kart są własne: każdy wzór kosztu występuje w każdym
+kolorze z obróconymi kolorami, więc żaden kolor nie jest z góry lepszy — to punkt odniesienia dla raportu.
+
+- `Gems` trzyma sześć liczników w jednym `ulong` (bajt na rodzaj): dodanie zestawu to jedno dodawanie;
+- płacenie automatyczne (kolory, a złoto tylko na brakujące) — boty nie wybierają między równoważnymi płatnościami;
+- nadmiar ponad 10 żetonów oddaje się osobnymi ruchami tego samego gracza;
+- gdy wszyscy po kolei spasują (nic innego nie jest legalne), partia się kończy zamiast kręcić w kółko;
+- testy właściwości po każdym ruchu setek partii na 2–4 graczy: żetony, karty i patroni nie powstają
+  ani nie znikają, każdy legalny ruch się wykonuje, tura przechodzi tylko z co najwyżej 10 żetonami.
+
+`KlejnotyEvaluator` ocenia pozycję (punkty > rabaty > żetony, plus postęp ku najlepszej osiągalnej karcie
+i patronom) dla `GreedyBot`, który patrzy jeden ruch do przodu. Siła (stałe ziarna, 2 graczy):
+greedy wygrywa z losowym co najmniej 75% partii, ISMCTS(300 iteracji) z greedy co najmniej 60%
+(progi testów siły; w pomiarach ok. 85% i 80%).
+
+```bash
+dotnet run -c Release --project src/BalanceLab.Cli -- simulate --game klejnoty --bots greedy ismcts:200 random --games 300
+```
 
 ## Symulator turniejów
 
@@ -125,6 +168,10 @@ Ruch MCTS z pustej planszy Czwórek:
 czyli ok. 1,6–1,9 mln iteracji na sekundę na rdzeń; alokacje to głównie nowe węzły drzewa (jeden na iterację),
 lista dzieci powstaje dopiero przy pierwszym rozwinięciu węzła.
 
+Klejnoty: losowa partia na 2 graczy (pętla jak w symulacji MCTS) to ok. **100 µs**, czyli ok. 10 000
+partii na sekundę na rdzeń (135 KB alokacji — niemutowalny stan z `ImmutableArray`; kandydat do
+optymalizacji), a determinizacja w środku partii **1,1 µs** — ukrycie informacji kosztuje ISMCTS ok. 1% czasu iteracji.
+
 Turniej 2000 partii MCTS(50) kontra bot losowy: 341 ms na 1 wątku, 66 ms na 16 wątkach
 logicznych (5,1×). Skalowanie nie jest liniowe — ograniczają je rdzenie fizyczne i odśmiecanie pamięci
 (MCTS tworzy węzeł na iterację).
@@ -136,6 +183,7 @@ dotnet test                 # jednostkowe, właściwości (FsCheck), statystyczn
 dotnet tool restore
 dotnet stryker              # mutation testing silnika, próg 90%
 dotnet stryker -f stryker-connectfour.json
+dotnet stryker -f stryker-klejnoty.json
 dotnet stryker -f stryker-bots.json
 dotnet stryker -f stryker-simulation.json
 dotnet stryker -f stryker-cli.json
