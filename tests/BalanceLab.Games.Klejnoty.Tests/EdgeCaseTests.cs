@@ -98,4 +98,39 @@ public sealed class EdgeCaseTests
         Assert.All(Enumerable.Range(0, 3), tier => Assert.Contains(views, v => !v.Decks[tier].SequenceEqual(state.Decks[tier])));
         Assert.All(views, v => Assert.Equal(state.Market.ToArray(), v.Market.ToArray()));
     }
+
+    [Fact]
+    public void Unknown_gem_kind_is_rejected_instead_of_corrupting_the_bytes()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => Gems.None.With((Gem)6, 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Gems.None[(Gem)(-1)]);
+    }
+
+    public static TheoryData<KlejnotyMove> DirtyMoves =>
+    [
+        KlejnotyMove.Buy(5) with { Gems = Gems.Of(red: 3) },
+        KlejnotyMove.Reserve(5) with { Tier = 2 },
+        KlejnotyMove.ReserveFromDeck(1) with { Card = 7 },
+        KlejnotyMove.Take(Gems.Of(1, 1, 1)) with { Card = 3 },
+        KlejnotyMove.Pass with { Tier = 1 },
+    ];
+
+    [Theory]
+    [MemberData(nameof(DirtyMoves))]
+    public void Moves_with_stray_fields_are_rejected(KlejnotyMove move)
+    {
+        var ex = Assert.Throws<IllegalMoveException>(() => Game.Apply(Start(), move));
+
+        Assert.EndsWith("ma wypelnione pola, ktorych nie uzywa.", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Tokens_over_the_limit_are_worth_nothing_to_the_evaluator()
+    {
+        var evaluator = new KlejnotyEvaluator();
+        var ten = (Start() with { Patrons = [], Market = [.. Enumerable.Repeat(-1, 12)] }).Give(0, Gems.Of(2, 2, 2, 2, 2));
+        var thirteen = ten.Give(0, Gems.Of(1, 1, 1));
+
+        Assert.Equal(evaluator.Evaluate(ten, 0) - 3, evaluator.Evaluate(thirteen, 0), 9);
+    }
 }
