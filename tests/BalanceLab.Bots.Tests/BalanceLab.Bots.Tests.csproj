@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="FsCheck.Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BalanceLab.Bots\BalanceLab.Bots.csproj" />
+    <ProjectReference Include="..\BalanceLab.Testing\BalanceLab.Testing.csproj" />
+  </ItemGroup>
+
+</Project>
