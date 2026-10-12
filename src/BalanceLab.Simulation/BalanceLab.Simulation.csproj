@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\BalanceLab.Engine\BalanceLab.Engine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Testy statystyk dlugosci partii podaja gotowe rekordy, bez rozgrywania. -->
+    <InternalsVisibleTo Include="BalanceLab.Simulation.Tests" />
+  </ItemGroup>
+
+</Project>
