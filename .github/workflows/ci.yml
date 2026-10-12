@@ -13,16 +13,22 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
-      - name: Testy (jednostkowe, wlasnosci FsCheck, architektura)
+      - name: Testy (jednostkowe, wlasnosci FsCheck, statystyczne, architektura)
         run: dotnet test
       - name: Benchmarki uruchamiaja sie (przebieg probny)
         run: dotnet run -c Release --project benchmarks/BalanceLab.Benchmarks -- --filter '*' --job dry
+      - run: dotnet tool restore
+      # Osobne kroki: spadek ponizej progu w jednym projekcie nie ukrywa wynikow pozostalych.
       - name: Mutation testing silnika (Stryker, prog 90%)
-        run: |
-          dotnet tool restore
-          dotnet stryker
+        run: dotnet stryker
+      - name: Mutation testing ConnectFour
+        if: ${{ !cancelled() }}
+        run: dotnet stryker -f stryker-connectfour.json
+      - name: Mutation testing botow
+        if: ${{ !cancelled() }}
+        run: dotnet stryker -f stryker-bots.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: stryker-engine
+          name: stryker-reports
           path: StrykerOutput/**/reports
