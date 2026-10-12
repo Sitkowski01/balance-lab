@@ -14,7 +14,7 @@ namespace BalanceLab.Bots;
 /// W kazdej determinizacji legalne moga byc inne ruchy (np. cudza zakryta karta). Dlatego premia
 /// za eksploracje liczy sie od tego, ile razy ruch byl <em>dostepny</em>, a nie od odwiedzin rodzica —
 /// inaczej rzadko dostepny ruch wygladalby na zaniedbany i dostawal za duzo iteracji.
-/// Dla gry z pelna informacja dziala jak zwykly <see cref="MctsBot{TState, TMove}"/>.
+/// Dla gry z pelna informacja dziala podobnie jak <see cref="MctsBot{TState, TMove}"/>.
 /// </remarks>
 public sealed class IsmctsBot<TState, TMove> : IPlayer<TState, TMove>
     where TState : notnull
@@ -58,15 +58,28 @@ public sealed class IsmctsBot<TState, TMove> : IPlayer<TState, TMove>
         }
         while (iterations < _options.IterationLimit && (clock is null || clock.Elapsed < _options.TimeLimit));
 
+        // Ruchy w korzeniu pochodza z determinizacji; zostawiamy tylko legalne naprawde —
+        // gra, ktora zlamie kontrakt, nie przemyci ruchu z wyobrazonego ukladu.
+        var legal = game.LegalMoves(state);
         ImmutableArray<MctsMoveStats<TMove>> moves =
         [
             .. root.Children!.Values
+                .Where(c => legal.Contains(c.Move))
                 .Select(c => new MctsMoveStats<TMove>(c.Move, c.Visits, c.Reward / c.Visits))
                 .OrderByDescending(s => s.Visits)
                 .ThenByDescending(s => s.MeanScore),
         ];
-        return new MctsSearch<TMove>(moves[0].Move, iterations, moves);
+        LastRoot = root;
+        return moves.IsEmpty
+            ? throw new InvalidOperationException("Zadna determinizacja nie dala legalnego ruchu - gra lamie kontrakt Determinize.")
+            : new MctsSearch<TMove>(moves[0].Move, iterations, moves);
     }
+
+    /// <summary>Dla testow: ile razy ruch byl dostepny i odwiedzony po zagraniu ruchu <paramref name="move"/> w korzeniu.</summary>
+    internal IReadOnlyDictionary<TMove, (int Visits, int Availability)> ChildrenAfter(TMove move) =>
+        LastRoot!.Children![move].Children!.ToDictionary(c => c.Key, c => (c.Value.Visits, c.Value.Availability));
+
+    private Node? LastRoot { get; set; }
 
     private void Iterate(IGame<TState, TMove> game, Node root, TState state)
     {

@@ -56,7 +56,8 @@ public interface IGame<TState, TMove>
     /// a to, czego nie widzi (talia, cudze zakryte karty), jest wylosowane z <paramref name="seed"/>.
     /// Wynik zalezy tylko od wiedzy obserwatora i ziarna: dwa stany, ktorych obserwator nie odroznia,
     /// daja przy tym samym ziarnie ten sam wynik. Legalne ruchy obserwatora na ruchu sie nie zmieniaja
-    /// (zna swoje opcje), a ruchy innych graczy moga. Gra z pelna informacja zwraca stan bez zmian.
+    /// (zna swoje opcje), a ruchy innych graczy moga. Kto jest na ruchu, zalezy tylko od informacji
+    /// jawnej. Gra z pelna informacja zwraca stan bez zmian.
     /// </summary>
     TState Determinize(TState state, int observer, ulong seed);
 }
