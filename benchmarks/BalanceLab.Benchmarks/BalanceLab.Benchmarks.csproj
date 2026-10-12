@@ -14,6 +14,7 @@
     <ProjectReference Include="..\..\src\BalanceLab.Engine\BalanceLab.Engine.csproj" />
     <ProjectReference Include="..\..\src\BalanceLab.Games.ConnectFour\BalanceLab.Games.ConnectFour.csproj" />
     <ProjectReference Include="..\..\src\BalanceLab.Bots\BalanceLab.Bots.csproj" />
+    <ProjectReference Include="..\..\src\BalanceLab.Simulation\BalanceLab.Simulation.csproj" />
   </ItemGroup>
 
 </Project>
