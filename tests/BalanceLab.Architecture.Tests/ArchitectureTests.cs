@@ -60,6 +60,19 @@ public sealed class ArchitectureTests
             "System.DateTime", "System.DateTimeOffset", "System.Guid", "System.HashCode", "System.Environment");
     }
 
+    [Theory]
+    [MemberData(nameof(DeterministicCore))]
+    public void Only_the_optional_mcts_time_budget_reads_the_clock(string project)
+    {
+        // Jedyny swiadomy wyjatek: MctsOptions.TimeLimit. Kto go uzywa, rezygnuje z powtarzalnosci.
+        var result = Types.InAssembly(Assembly.Load(project))
+            .That().DoNotHaveNameStartingWith("MctsBot")
+            .ShouldNot().HaveDependencyOn("System.Diagnostics.Stopwatch")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, string.Join(", ", result.FailingTypeNames ?? []));
+    }
+
     private static void AssertNoDependency(string project, params string[] forbidden)
     {
         var result = Types.InAssembly(Assembly.Load(project)).ShouldNot().HaveDependencyOnAny(forbidden).GetResult();
