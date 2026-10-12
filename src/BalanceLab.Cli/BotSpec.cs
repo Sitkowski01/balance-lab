@@ -5,23 +5,34 @@ using BalanceLab.Simulation;
 
 namespace BalanceLab.Cli;
 
-/// <summary>Bot z linii polecen: <c>random</c>, <c>mcts</c> albo <c>mcts:ITERACJE</c>.</summary>
+/// <summary>Bot z linii polecen: <c>random</c>, <c>greedy</c>, <c>mcts[:ITERACJE]</c> albo <c>ismcts[:ITERACJE]</c>.</summary>
 internal static class BotSpec
 {
-    public const string Help = "random | mcts | mcts:ITERACJE (np. mcts:500)";
+    public const string Help = "random | greedy | mcts | mcts:ITERACJE | ismcts | ismcts:ITERACJE (np. mcts:500)";
 
-    public static Contestant<TState, TMove> Parse<TState, TMove>(string spec, string name)
+    /// <param name="evaluator">Ocena pozycji gry; bez niej bot <c>greedy</c> jest niedostepny.</param>
+    public static Contestant<TState, TMove> Parse<TState, TMove>(string spec, string name, IEvaluator<TState>? evaluator)
         where TState : notnull
         where TMove : notnull
     {
         var parts = spec.Split(':', 2);
+        int? iterations = null;
+        if (parts.Length == 2)
+        {
+            iterations = int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var n) && n > 0
+                ? n
+                : throw Unknown(spec);
+        }
+
+        var options = new MctsOptions { Iterations = iterations };
         return (parts[0].ToLowerInvariant(), parts.Length) switch
         {
             ("random", 1) => new(name, seed => new RandomBot<TState, TMove>(seed)),
-            ("mcts", 1) => Mcts<TState, TMove>(name, null),
-            ("mcts", 2) when int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var n) && n > 0
-                => Mcts<TState, TMove>(name, n),
-            _ => throw new FormatException($"Nieznany bot '{spec}'. Dostepne: {Help}."),
+            ("greedy", 1) when evaluator is not null => new(name, seed => new GreedyBot<TState, TMove>(evaluator, seed)),
+            ("greedy", 1) => throw new FormatException("Bot 'greedy' potrzebuje oceny pozycji, a ta gra jej nie ma."),
+            ("mcts", _) => new(name, seed => new MctsBot<TState, TMove>(seed, options)),
+            ("ismcts", _) => new(name, seed => new IsmctsBot<TState, TMove>(seed, options)),
+            _ => throw Unknown(spec),
         };
     }
 
@@ -33,11 +44,5 @@ internal static class BotSpec
             return earlier == 0 ? spec : $"{spec}#{earlier + 1}";
         })];
 
-    private static Contestant<TState, TMove> Mcts<TState, TMove>(string name, int? iterations)
-        where TState : notnull
-        where TMove : notnull
-    {
-        var options = new MctsOptions { Iterations = iterations };
-        return new(name, seed => new MctsBot<TState, TMove>(seed, options));
-    }
+    private static FormatException Unknown(string spec) => new($"Nieznany bot '{spec}'. Dostepne: {Help}.");
 }
