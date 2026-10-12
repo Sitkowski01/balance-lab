@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Test podsumowania podaje gotowy raport i czas, bez rozgrywania turnieju. -->
+    <InternalsVisibleTo Include="BalanceLab.Cli.Tests" />
+  </ItemGroup>
+
+  <!-- Jedyne miejsce, ktore zna wszystko: gry, boty i symulator sklada dopiero CLI. -->
+  <ItemGroup>
+    <ProjectReference Include="..\BalanceLab.Simulation\BalanceLab.Simulation.csproj" />
+    <ProjectReference Include="..\BalanceLab.Bots\BalanceLab.Bots.csproj" />
+    <ProjectReference Include="..\BalanceLab.Games.ConnectFour\BalanceLab.Games.ConnectFour.csproj" />
+  </ItemGroup>
+
+</Project>
