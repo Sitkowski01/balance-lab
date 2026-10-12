@@ -86,12 +86,12 @@ public sealed class MctsBot<TState, TMove> : IPlayer<TState, TMove>
         }
 
         // 3. Symulacja i 4. propagacja wyniku w gore drzewa.
-        var scores = Playout(game, node.State);
-        var draw = 1.0 / game.PlayerCount(node.State);
+        var scores = Rollout.Play(game, node.State, ref _rng, _options.MaxPlayoutMoves);
+        var players = game.PlayerCount(node.State);
         for (var n = node; n.Parent is not null; n = n.Parent)
         {
             n.Visits++;
-            n.Reward += scores.IsEmpty ? draw : scores[n.PlayerJustMoved];
+            n.Reward += Rollout.ScoreOf(scores, n.PlayerJustMoved, players);
         }
 
         root.Visits++;
@@ -115,23 +115,6 @@ public sealed class MctsBot<TState, TMove> : IPlayer<TState, TMove>
         }
 
         return best;
-    }
-
-    private ImmutableArray<double> Playout(IGame<TState, TMove> game, TState state)
-    {
-        for (var steps = 0; !game.IsTerminal(state); steps++)
-        {
-            if (steps == _options.MaxPlayoutMoves)
-            {
-                return [];
-            }
-
-            var moves = game.LegalMoves(state);
-            (var index, _rng) = _rng.NextInt(moves.Count);
-            state = game.Apply(state, moves[index]);
-        }
-
-        return game.Scores(state);
     }
 
     private Node CreateNode(IGame<TState, TMove> game, TState state, Node? parent, TMove move, int playerJustMoved)
