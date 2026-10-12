@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/BalanceLab.Benchmarks/BalanceLab.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/BalanceLab.Engine/BalanceLab.Engine.csproj" />
   </Folder>
