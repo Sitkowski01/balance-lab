@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using System.Diagnostics;
 using BalanceLab.Engine;
 using BalanceLab.Testing;
 
@@ -108,5 +110,123 @@ public sealed class MctsBotTests
         Assert.All(greedy, s => Assert.True(s.Moves[0].Visits > 990));
         Assert.All(balanced, s => Assert.Equal(2, s.BestMove));
         Assert.All(balanced, s => Assert.True(s.Moves.Min(m => m.Visits) > 40));
+    }
+
+    [Fact]
+    public void Time_limit_alone_lifts_the_default_iteration_cap()
+    {
+        // Progi celowo luzne: na obciazonej maszynie CI czas moze sie rozjechac, a test ma nie migac.
+        var bot = new MctsBot<NimState, int>(7, new MctsOptions { TimeLimit = TimeSpan.FromMilliseconds(100) });
+
+        var clock = Stopwatch.StartNew();
+        var search = bot.Search(Nim, new NimState(19, 2, 0, null));
+
+        Assert.InRange(clock.ElapsedMilliseconds, 90, 10_000);
+        Assert.True(search.Iterations > 1_000, $"iteracje: {search.Iterations}");
+    }
+
+    [Fact]
+    public void Default_budget_is_a_thousand_iterations()
+    {
+        Assert.Equal(1_000, new MctsBot<NimState, int>(7).Search(Nim, new NimState(19, 2, 0, null)).Iterations);
+    }
+
+    [Fact]
+    public void Forced_move_is_played_without_searching()
+    {
+        // Z limitem 10 s szukanie byloby widac; jedyny legalny ruch wraca od razu.
+        var bot = new MctsBot<NimState, int>(7, new MctsOptions { TimeLimit = TimeSpan.FromSeconds(10) });
+
+        var clock = Stopwatch.StartNew();
+        var move = bot.ChooseMove(Nim, new NimState(1, 2, 0, null));
+
+        Assert.Equal(1, move);
+        Assert.True(clock.ElapsedMilliseconds < 5_000);
+        Assert.Throws<ArgumentNullException>(() => bot.ChooseMove(null!, new NimState(1, 2, 0, null)));
+    }
+
+    [Fact]
+    public void Iteration_limit_applies_even_with_a_time_limit()
+    {
+        var bot = new MctsBot<NimState, int>(8, new MctsOptions { Iterations = 50, TimeLimit = TimeSpan.FromMinutes(1) });
+
+        Assert.Equal(50, bot.Search(Nim, new NimState(19, 2, 0, null)).Iterations);
+    }
+
+    [Fact]
+    public void Endless_playouts_are_cut_off_and_count_as_a_draw()
+    {
+        var bot = new MctsBot<int, int>(9, new MctsOptions { Iterations = 20, MaxPlayoutMoves = 5 });
+
+        var search = bot.Search(new EndlessGame(), 0);
+
+        Assert.Equal(20, search.Moves.Single().Visits);
+        Assert.Equal(0.5, search.Moves.Single().MeanScore);
+    }
+
+    [Fact]
+    public void Refuses_to_search_a_finished_game()
+    {
+        var bot = new MctsBot<NimState, int>(10);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => bot.Search(Nim, new NimState(0, 2, 1, 0)));
+
+        Assert.Contains("Partia sie skonczyla", ex.Message, StringComparison.Ordinal);
+        Assert.Throws<ArgumentNullException>(() => bot.Search(null!, new NimState(5, 2, 0, null)));
+    }
+
+    public static TheoryData<MctsOptions, string> InvalidOptions => new()
+    {
+        { new MctsOptions { Iterations = 0 }, "Iterations" },
+        { new MctsOptions { Exploration = -0.1 }, "Exploration" },
+        { new MctsOptions { Exploration = double.NaN }, "Exploration" },
+        { new MctsOptions { Exploration = double.PositiveInfinity }, "Exploration" },
+        { new MctsOptions { Iterations = 0, TimeLimit = TimeSpan.FromSeconds(1) }, "Iterations" },
+        { new MctsOptions { MaxPlayoutMoves = 0 }, "MaxPlayoutMoves" },
+        { new MctsOptions { TimeLimit = TimeSpan.Zero }, "TimeLimit" },
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidOptions))]
+    public void Rejects_invalid_options(MctsOptions options, string parameter)
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => new MctsBot<NimState, int>(1, options));
+
+        Assert.Equal(parameter, ex.ParamName);
+    }
+
+    [Fact]
+    public void Default_options_are_sqrt_two_and_a_thousand_playout_moves()
+    {
+        var options = new MctsOptions();
+
+        Assert.Equal(((int?)null, Math.Sqrt(2), 1_000, (TimeSpan?)null),
+            (options.Iterations, options.Exploration, options.MaxPlayoutMoves, options.TimeLimit));
+    }
+
+    /// <summary>Gra bez konca: jeden ruch, ktory niczego nie zmienia.</summary>
+    private sealed class EndlessGame : IGame<int, int>
+    {
+        public string Name => "Endless";
+
+        public int MinPlayers => 1;
+
+        public int MaxPlayers => 1;
+
+        public int Setup(GameSetup setup) => 0;
+
+        public int PlayerCount(int state) => 2;
+
+        public int CurrentPlayer(int state) => 0;
+
+        public IReadOnlyList<int> LegalMoves(int state) => [0];
+
+        public int Apply(int state, int move) => state;
+
+        public bool IsTerminal(int state) => false;
+
+        public ImmutableArray<double> Scores(int state) => throw new InvalidOperationException();
+
+        public ulong Hash(int state) => 0;
     }
 }
