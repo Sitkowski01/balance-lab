@@ -94,6 +94,147 @@ public sealed class TournamentTests
         Assert.All(report.Contestants, c => Assert.InRange(c.Wins.Rate, 0.45, 0.55));
     }
 
+    [Fact]
+    public void Games_over_the_move_limit_are_unfinished()
+    {
+        var report = Run(new TournamentSpec(20, 5) { MaxMoves = 2 }).Report;
+
+        Assert.Equal((0, 0), (report.Completed, report.Draws));
+        Assert.Null(report.Length);
+        Assert.All(report.Seats, s => Assert.Equal(Proportion.Of(0, 0), s.Wins));
+        Assert.All(report.Contestants, c => Assert.Equal(0, c.MeanScore));
+        Assert.All(report.Seats, s => Assert.Equal(0, s.MeanScore));
+    }
+
+    [Fact]
+    public void Progress_is_reported_once_per_game()
+    {
+        var reports = new List<int>();
+        var progress = new SynchronousProgress(reports);
+
+        Run(new TournamentSpec(26, 6), progress: progress);
+
+        Assert.Equal(Enumerable.Range(1, 26), reports.Order());
+    }
+
+    [Fact]
+    public void Cancelled_tournament_stops()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        Assert.ThrowsAny<OperationCanceledException>(() => Run(new TournamentSpec(1_000, 1), cancellationToken: cts.Token));
+    }
+
+    [Fact]
+    public void Failed_game_reports_its_number_and_seed()
+    {
+        var cheater = new Contestant<NimState, int>("cheater", _ => new FixedPlayer<NimState, int>(4));
+
+        var ex = Assert.Throws<GameFailedException>(() =>
+            Tournament.Run(Nim, [cheater, RandomContestant<NimState, int>("fair")], new TournamentSpec(10, 8) { MaxDegreeOfParallelism = 1 }));
+
+        Assert.Equal((0, Tournament.SeedFor(8, 0, 0)), (ex.Game, ex.Seed));
+        Assert.IsType<IllegalMoveException>(ex.InnerException);
+        Assert.StartsWith($"Partia 0 (ziarno {ex.Seed}) przerwana: Nie mozna wziac 4", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void With_many_failures_the_lowest_game_is_reported_whatever_the_threads()
+    {
+        // Oszust psuje kazda partie; na wielu watkach pierwsza "wykryta" bylaby losowa.
+        var cheater = new Contestant<NimState, int>("cheater", _ => new FixedPlayer<NimState, int>(4));
+        Contestant<NimState, int>[] contestants = [RandomContestant<NimState, int>("fair"), cheater];
+
+        var ex = Assert.Throws<GameFailedException>(() => Tournament.Run(Nim, contestants, new TournamentSpec(400, 8)));
+
+        Assert.Equal(0, ex.Game);
+    }
+
+    [Fact]
+    public void Seeds_differ_by_game_and_by_purpose()
+    {
+        var seeds = new[] { Tournament.SeedFor(1, 0, 0), Tournament.SeedFor(1, 1, 0), Tournament.SeedFor(1, 0, 1), Tournament.SeedFor(2, 0, 0) };
+
+        Assert.Equal(4, seeds.Distinct().Count());
+        Assert.Equal(StableHash.Empty.Add(1).Add(0).Add(1).Value, Tournament.SeedFor(1, 0, 1));
+    }
+
+    [Fact]
+    public void Players_get_their_own_seeds_derived_from_game_and_seat()
+    {
+        var seen = new System.Collections.Concurrent.ConcurrentBag<(string Name, ulong Seed)>();
+        Contestant<NimState, int> Spy(string name) => new(name, seed =>
+        {
+            seen.Add((name, seed));
+            return new RandomBot<NimState, int>(seed);
+        });
+
+        Tournament.Run(Nim, [Spy("a"), Spy("b")], new TournamentSpec(4, 21));
+
+        // Partia 1: rotacja sadza "b" na miejscu 0, wiec dostaje ziarno celu 1; "a" — celu 2.
+        Assert.Contains(("a", Tournament.SeedFor(21, 0, 1)), seen);
+        Assert.Contains(("b", Tournament.SeedFor(21, 0, 2)), seen);
+        Assert.Contains(("b", Tournament.SeedFor(21, 1, 1)), seen);
+        Assert.Contains(("a", Tournament.SeedFor(21, 1, 2)), seen);
+        Assert.DoesNotContain(seen, s => s.Seed == Tournament.SeedFor(21, 0, 0));
+    }
+
+    public static TheoryData<TournamentSpec, string> InvalidSpecs => new()
+    {
+        { new TournamentSpec(0, 1), "spec" },
+        { new TournamentSpec(10, 1) { MaxDegreeOfParallelism = 0 }, "spec" },
+        { new TournamentSpec(10, 1) { MaxDegreeOfParallelism = -2 }, "spec" },
+        { new TournamentSpec(10, 1) { MaxMoves = 0 }, "spec" },
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidSpecs))]
+    public void Rejects_invalid_specs(TournamentSpec spec, string parameter)
+    {
+        Assert.Equal(parameter, Assert.Throws<ArgumentOutOfRangeException>(() => Run(spec)).ParamName);
+    }
+
+    [Fact]
+    public void Rejects_wrong_or_duplicate_contestants()
+    {
+        var one = Assert.Throws<ArgumentException>(() => Tournament.Run(Nim, [RandomContestant<NimState, int>("a")], new TournamentSpec(1, 1)));
+        var five = Assert.Throws<ArgumentException>(() => Run(new TournamentSpec(10, 1), players: 5));
+        var twins = Assert.Throws<ArgumentException>(() =>
+            Tournament.Run(Nim, [RandomContestant<NimState, int>("a"), RandomContestant<NimState, int>("a")], new TournamentSpec(1, 1)));
+
+        Assert.StartsWith("Nim to gra dla 2-4 graczy, a uczestnikow jest 1.", one.Message, StringComparison.Ordinal);
+        Assert.Equal("contestants", five.ParamName);
+        Assert.StartsWith("Nazwa uczestnika 'a' powtarza sie", twins.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Game_count_must_let_everyone_start_equally_often()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => Run(new TournamentSpec(10, 1), players: 3));
+
+        Assert.StartsWith("Liczba partii (10) musi byc wielokrotnoscia liczby uczestnikow (3)", ex.Message, StringComparison.Ordinal);
+        Assert.Equal("spec", ex.ParamName);
+    }
+
+    [Fact]
+    public void Spec_errors_explain_themselves()
+    {
+        Assert.StartsWith("Liczba partii musi byc wieksza od 0.", Assert.Throws<ArgumentOutOfRangeException>(() => Run(new TournamentSpec(0, 1))).Message, StringComparison.Ordinal);
+        Assert.StartsWith("Limit ruchow musi byc wiekszy od 0.", Assert.Throws<ArgumentOutOfRangeException>(() => Run(new TournamentSpec(2, 1) { MaxMoves = 0 })).Message, StringComparison.Ordinal);
+        Assert.StartsWith("Liczba watkow: -1 albo wiecej niz 0.", Assert.Throws<ArgumentOutOfRangeException>(() => Run(new TournamentSpec(2, 1) { MaxDegreeOfParallelism = 0 })).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Rejects_null_arguments()
+    {
+        Contestant<NimState, int>[] two = [RandomContestant<NimState, int>("a"), RandomContestant<NimState, int>("b")];
+
+        Assert.Throws<ArgumentNullException>(() => Tournament.Run<NimState, int>(null!, two, new TournamentSpec(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => Tournament.Run(Nim, null!, new TournamentSpec(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => Tournament.Run(Nim, two, null!));
+    }
+
     private static TournamentResult Run(
         TournamentSpec spec,
         int players = 2,
