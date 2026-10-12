@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BalanceLab.Engine/BalanceLab.Engine.csproj" />
+  </Folder>
+</Solution>
