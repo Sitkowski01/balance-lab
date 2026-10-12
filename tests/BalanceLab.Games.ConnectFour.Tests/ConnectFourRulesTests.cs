@@ -97,4 +97,81 @@ public sealed class ConnectFourRulesTests
         Assert.Equal([0.5, 0.5], Game.Scores(after).ToArray());
     }
 
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(7)]
+    public void Column_outside_the_board_is_illegal(int column)
+    {
+        Assert.Throws<IllegalMoveException>(() => Game.Apply(Board.Play(), new ConnectFourMove(column)));
+    }
+
+    [Fact]
+    public void Full_column_is_illegal_and_not_offered()
+    {
+        var state = Board.Play(2, 2, 2, 2, 2, 2);
+
+        var ex = Assert.Throws<IllegalMoveException>(() => Game.Apply(state, new ConnectFourMove(2)));
+
+        Assert.Equal("Nie mozna wrzucic do kolumny 2.", ex.Message);
+        Assert.DoesNotContain(new ConnectFourMove(2), Game.LegalMoves(state));
+        Assert.Equal(6, Game.LegalMoves(state).Count);
+    }
+
+    [Fact]
+    public void Asking_for_legal_moves_allocates_nothing()
+    {
+        // MCTS pyta o ruchy przy kazdym kroku symulacji — wynik pochodzi z gotowej tablicy.
+        var state = Board.Play(2, 2, 2, 2, 2, 2, 0);
+        Game.LegalMoves(state);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var moves = Game.LegalMoves(state);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(0, allocated);
+        Assert.Equal([0, 1, 3, 4, 5, 6], moves.Select(m => m.Column));
+        Assert.Same(moves, Game.LegalMoves(Board.Play(2, 2, 2, 2, 2, 2, 1)));
+    }
+
+    [Fact]
+    public void No_move_after_the_game_ends()
+    {
+        var won = Board.Play(0, 1, 0, 1, 0, 1, 0);
+
+        var ex = Assert.Throws<IllegalMoveException>(() => Game.Apply(won, new ConnectFourMove(5)));
+
+        Assert.Equal("Partia sie skonczyla.", ex.Message);
+    }
+
+    [Fact]
+    public void Scores_exist_only_at_the_end()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => Game.Scores(Board.Play(3)));
+
+        Assert.Equal("Partia jeszcze trwa.", ex.Message);
+    }
+
+    [Fact]
+    public void Owner_reports_pieces_and_rejects_cells_outside_the_board()
+    {
+        var state = Board.Play(6, 6);
+
+        Assert.Equal((0, 1, (int?)null), (state.Owner(6, 0), state.Owner(6, 1), state.Owner(6, 2)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => state.Owner(-1, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => state.Owner(7, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => state.Owner(0, -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => state.Owner(0, 6));
+    }
+
+    [Fact]
+    public void Hash_identifies_the_position_and_is_stable_between_versions()
+    {
+        var a = Board.Play(3, 4);
+        var b = Board.Play(4, 3);
+
+        Assert.Equal(Game.Hash(a), Game.Hash(Board.Play(3, 4)));
+        Assert.NotEqual(Game.Hash(a), Game.Hash(b));
+        Assert.Equal(StableHash.Empty.Add(1UL << 21).Add(1UL << 28).Value, Game.Hash(a));
+        Assert.Equal("kolumna 3", new ConnectFourMove(3).ToString());
+    }
 }
