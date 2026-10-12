@@ -4,7 +4,25 @@ Laboratorium balansu gier planszowych. Zasady gry podpina się jako plugin, boty
 rozgrywają tysiące partii, a raport pokazuje, co jest niezbalansowane: przewagę miejsca
 przy stole, dominujące strategie, za mocne i martwe karty oraz skutki zmian w zasadach.
 
-> Projekt w budowie. Gotowe: deterministyczny generator liczb losowych silnika.
+> Projekt w budowie. Gotowe: kontrakt silnika, deterministyczny generator, Czwórki (ConnectFour)
+> jako pierwsza gra i bot losowy.
+
+## Architektura
+
+```
+src/BalanceLab.Engine              kontrakt IGame<TState, TMove>, IPlayer, Match, Pcg32, StableHash
+src/BalanceLab.Games.ConnectFour   Czwórki na bitboardach (zna tylko silnik)
+src/BalanceLab.Bots                RandomBot (działa na kontrakcie, nie zna żadnej gry)
+```
+
+Gra to czyste funkcje na niemutowalnym stanie: `Setup(gracze, ziarno)`, `LegalMoves`, `Apply`
+(nowy stan), `IsTerminal`, `Scores` i `Hash` — stabilny między procesami (FNV-1a), w przeciwieństwie
+do `GetHashCode`. `Match` rozgrywa partię i nie ufa graczom: o legalności ruchu decyduje `Apply` gry.
+Reguły zależności pilnuje NetArchTest.
+
+Czwórki trzymają planszę w dwóch liczbach 64-bitowych (kolumna = 6 pól + pusty bit strażnika),
+więc ruch to jedno dodawanie, a szukanie czwórki — cztery przesunięcia bitowe. Test różnicowy
+porównuje bitboard z prostym sędzią na siatce po każdym ruchu setek losowych partii.
 
 ## Determinizm
 
@@ -17,7 +35,8 @@ ruchów i porównania wariantów zasad. Dlatego silnik ma własny generator
 - `NextInt(bound)` bez przesunięcia (odrzuca niepełną końcówkę zakresu 2^32);
 - tasowanie Fishera-Yatesa, wyniki zamrożone testami — stara powtórka zawsze daje tę samą partię.
 
-Test architektury pilnuje, że silnik nie sięga po `System.Random`, zegar ani `Guid`.
+Test architektury pilnuje, że ani silnik, ani gry, ani boty nie sięgają po `System.Random`, zegar ani `Guid`.
+To samo ziarno daje tę samą partię, a ruchy z zapisu odtwarzają stan o identycznym hashu.
 
 ## Wydajność
 
@@ -29,12 +48,18 @@ BenchmarkDotNet, 1000 losowań z przedziału [0, 6):
 | `Pcg32.NextInt(6)` | 2,1 µs | 0 B |
 | `Pcg32.Shuffle` (90 kart) | 0,45 µs | 384 B |
 
+Losowa partia Czwórek od pustej planszy do końca (playout, jak w MCTS): **0,56 µs**,
+czyli ok. 1,8 mln partii na sekundę na rdzeń. Legalne ruchy nie alokują pamięci: dla każdej
+z 128 masek wolnych kolumn lista jest zbudowana raz.
+
 ## Testy
 
 ```bash
 dotnet test                 # jednostkowe, właściwości (FsCheck), architektura (NetArchTest)
 dotnet tool restore
 dotnet stryker              # mutation testing silnika, próg 90%
+dotnet stryker -f stryker-connectfour.json
+dotnet stryker -f stryker-bots.json
 dotnet run -c Release --project benchmarks/BalanceLab.Benchmarks -- --filter '*'
 ```
 
