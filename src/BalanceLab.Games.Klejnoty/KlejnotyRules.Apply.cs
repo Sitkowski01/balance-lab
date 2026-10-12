@@ -21,6 +21,13 @@ public static partial class KlejnotyRules
                 : "Oddaje sie tylko zetony ponad limit 10.");
         }
 
+        // Nieuzywane pola musza miec wartosci z fabryk: inaczej dwa rozne zapisy w dzienniku
+        // oznaczalyby ten sam ruch, a powtorka nie moglaby ich porownac.
+        if (move != Canonical(move))
+        {
+            throw new IllegalMoveException($"Ruch {move} ma wypelnione pola, ktorych nie uzywa.");
+        }
+
         return move.Kind switch
         {
             MoveKind.TakeDifferent => Take(state, move.Gems, IsValidTakeDifferent(state.Bank, move.Gems)),
@@ -34,6 +41,15 @@ public static partial class KlejnotyRules
             _ => throw new IllegalMoveException($"Nieznany ruch {move.Kind}."),
         };
     }
+
+    private static KlejnotyMove Canonical(KlejnotyMove move) => move.Kind switch
+    {
+        MoveKind.TakeDifferent or MoveKind.TakeTwo or MoveKind.Return => move with { Card = -1, Tier = 0 },
+        MoveKind.Reserve or MoveKind.Buy or MoveKind.BuyReserved => move with { Gems = Gems.None, Tier = 0 },
+        MoveKind.ReserveFromDeck => move with { Gems = Gems.None, Card = -1 },
+        MoveKind.Pass => KlejnotyMove.Pass,
+        _ => move,
+    };
 
     /// <summary>Rozne kolory, bez zlota; tyle, ile sie da, ale nie wiecej niz 3.</summary>
     private static bool IsValidTakeDifferent(Gems bank, Gems take)

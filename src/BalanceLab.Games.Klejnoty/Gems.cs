@@ -110,5 +110,7 @@ public readonly record struct Gems
         return text.Length > 0 ? text.ToString() : "-";
     }
 
-    private static int Shift(Gem gem) => (int)gem * 8;
+    /// <summary>Rodzaj spoza zakresu (np. rzutowana liczba) trafilby w nieuzywany bajt i zepsul odejmowanie.</summary>
+    private static int Shift(Gem gem) =>
+        (uint)gem <= (uint)Gem.Gold ? (int)gem * 8 : throw new ArgumentOutOfRangeException(nameof(gem), gem, "Nieznany rodzaj zetonu.");
 }

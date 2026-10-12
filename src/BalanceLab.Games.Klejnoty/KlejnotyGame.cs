@@ -8,7 +8,11 @@ namespace BalanceLab.Games.Klejnoty;
 /// patronow. Kto pierwszy ma 15 punktow, konczy gre — runda jest dogrywana do ostatniego gracza.
 /// Ukryte sa talie i karty zarezerwowane w ciemno; te drugie widzi tylko ich wlasciciel.
 /// </summary>
-/// <remarks>Same zasady siedza w <see cref="KlejnotyRules"/>; ta klasa podpina je pod kontrakt silnika.</remarks>
+/// <remarks>
+/// Same zasady siedza w <see cref="KlejnotyRules"/>; ta klasa podpina je pod kontrakt silnika.
+/// Dwa swiadome uproszczenia wobec Splendora, zeby boty mialy mniej rownowaznych ruchow:
+/// placenie jest automatyczne, a gdy pasuje kilku patronow, przychodzi ten o najnizszym numerze.
+/// </remarks>
 public sealed class KlejnotyGame : IGame<KlejnotyState, KlejnotyMove>
 {
     public string Name => "Klejnoty";
