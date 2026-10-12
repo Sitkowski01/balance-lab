@@ -50,6 +50,13 @@ public sealed class ArchitectureTests
         AssertNoDependency("BalanceLab.Bots", "BalanceLab.Games");
     }
 
+    [Fact]
+    public void Simulator_runs_any_game_with_any_player()
+    {
+        // Gry i boty sklada dopiero CLI; symulator zna tylko kontrakt silnika.
+        AssertNoDependency("BalanceLab.Simulation", "BalanceLab.Games", "BalanceLab.Bots", "BalanceLab.Cli");
+    }
+
     [Theory]
     [MemberData(nameof(DeterministicCore))]
     public void Randomness_comes_only_from_the_engine_generator(string project)

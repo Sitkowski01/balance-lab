@@ -13,22 +13,31 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
-      - name: Testy (jednostkowe, wlasnosci FsCheck, statystyczne, architektura)
+      - name: Testy (jednostkowe, wlasnosci FsCheck, statystyczne, sily botow, architektura, e2e CLI)
         run: dotnet test
       - name: Benchmarki uruchamiaja sie (przebieg probny)
         run: dotnet run -c Release --project benchmarks/BalanceLab.Benchmarks -- --filter '*' --job dry
-      - run: dotnet tool restore
-      # Osobne kroki: spadek ponizej progu w jednym projekcie nie ukrywa wynikow pozostalych.
-      - name: Mutation testing silnika (Stryker, prog 90%)
-        run: dotnet stryker
-      - name: Mutation testing ConnectFour
-        if: ${{ !cancelled() }}
-        run: dotnet stryker -f stryker-connectfour.json
-      - name: Mutation testing botow
-        if: ${{ !cancelled() }}
-        run: dotnet stryker -f stryker-bots.json
+      - name: CLI na zywo
+        run: dotnet run --project src/BalanceLab.Cli -- simulate --game connectfour --bots mcts:100 random --games 200 --out report.json
+
+  mutation:
+    # Kazdy projekt w osobnym, rownoleglym zadaniu: CI trwa tyle, co najwolniejszy, a nie suma.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [stryker-config.json, stryker-connectfour.json, stryker-bots.json, stryker-simulation.json, stryker-cli.json]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Mutation testing (Stryker, prog 90%)
+        run: |
+          dotnet tool restore
+          dotnet stryker -f ${{ matrix.config }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: stryker-reports
+          name: stryker-${{ matrix.config }}
           path: StrykerOutput/**/reports
