@@ -5,6 +5,7 @@
   <Folder Name="/src/">
     <Project Path="src/BalanceLab.Bots/BalanceLab.Bots.csproj" />
     <Project Path="src/BalanceLab.Engine/BalanceLab.Engine.csproj" />
+    <Project Path="src/BalanceLab.Games.ConnectFour/BalanceLab.Games.ConnectFour.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/BalanceLab.Bots.Tests/BalanceLab.Bots.Tests.csproj" />

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\BalanceLab.Engine\BalanceLab.Engine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Testy ustawiaja pozycje wprost z obrazka ASCII zamiast z dlugich ciagow ruchow. -->
+    <InternalsVisibleTo Include="BalanceLab.Games.ConnectFour.Tests" />
+  </ItemGroup>
+
+</Project>
