@@ -8,6 +8,7 @@
     <ProjectReference Include="..\..\src\BalanceLab.Simulation\BalanceLab.Simulation.csproj" />
     <ProjectReference Include="..\..\src\BalanceLab.Bots\BalanceLab.Bots.csproj" />
     <ProjectReference Include="..\..\src\BalanceLab.Games.ConnectFour\BalanceLab.Games.ConnectFour.csproj" />
+    <ProjectReference Include="..\..\src\BalanceLab.Games.Klejnoty\BalanceLab.Games.Klejnoty.csproj" />
     <ProjectReference Include="..\BalanceLab.Testing\BalanceLab.Testing.csproj" />
   </ItemGroup>
 
