@@ -34,6 +34,18 @@ internal static class Summary
         output.WriteLine(string.Create(c, $"Czas: {elapsed.TotalSeconds:0.00} s ({perSecond:0} partii/s)"));
     }
 
+    public static void WriteLeague(TextWriter output, LeagueReport report)
+    {
+        var c = CultureInfo.InvariantCulture;
+        output.WriteLine(string.Create(c, $"{report.Game}: liga, {report.GamesPerPair} partii na pare, ziarno {report.Seed}"));
+        output.WriteLine();
+        output.WriteLine("Uczestnik                 Elo  sredni wynik");
+        foreach (var r in report.Ratings)
+        {
+            output.WriteLine(string.Create(c, $"{r.Name,-20} {r.Elo,8:0.0}  {r.MeanScore,12:0.000}"));
+        }
+    }
+
     // Bez ukonczonych partii "0%" sugerowaloby zmierzony wynik, a to brak danych.
     private static string Rate(Proportion p) => p.Trials == 0 ? "-" : Percent(p.Rate);
 

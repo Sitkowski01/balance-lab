@@ -15,7 +15,7 @@ public static class Cli
 
     public static int Run(string[] args, TextWriter output, TextWriter error)
     {
-        var root = new RootCommand("Balance Lab - laboratorium balansu gier planszowych.") { SimulateCommand.Create(output, error) };
+        var root = new RootCommand("Balance Lab - laboratorium balansu gier planszowych.") { SimulateCommand.Create(output, error), LeagueCommand.Create(output, error) };
         var parsed = root.Parse(args);
         if (parsed.Errors.Count > 0)
         {
@@ -24,7 +24,9 @@ public static class Cli
                 error.WriteLine(parseError.Message);
             }
 
-            error.WriteLine("Pomoc: balance-lab simulate --help");
+            // Pomoc polecenia, ktore uzytkownik wpisal (simulate, league); bez polecenia — ogolna.
+            var command = parsed.CommandResult.Command == root ? "" : $" {parsed.CommandResult.Command.Name}";
+            error.WriteLine($"Pomoc: balance-lab{command} --help");
             return UsageError;
         }
 
