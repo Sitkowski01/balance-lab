@@ -95,12 +95,12 @@ public sealed class SimulateCommandTests : IDisposable
     private static readonly (string Message, string[] Args)[] UsageErrors =
     [
         ("Nieznana gra 'szachy'. Dostepne: connectfour, klejnoty.", ["--game", "szachy", "--bots", "random", "random"]),
-        ("Nieznany bot 'alfa'. Dostepne: random | greedy | mcts | mcts:ITERACJE | ismcts | ismcts:ITERACJE (np. mcts:500).", ["--game", "connectfour", "--bots", "random", "alfa"]),
+        ("Nieznany bot 'alfa'. Dostepne: random | greedy | greedy:PROFIL | mcts | mcts:ITERACJE | ismcts | ismcts:ITERACJE (np. mcts:500, greedy:silnik).", ["--game", "connectfour", "--bots", "random", "alfa"]),
         ("Nieznany bot 'mcts:0'.", ["--game", "connectfour", "--bots", "random", "mcts:0"]),
         ("Nieznany bot 'mcts:-5'.", ["--game", "connectfour", "--bots", "random", "mcts:-5"]),
         ("Nieznany bot 'mcts:abc'.", ["--game", "connectfour", "--bots", "random", "mcts:abc"]),
         ("Nieznany bot 'random:5'.", ["--game", "connectfour", "--bots", "random", "random:5"]),
-        ("Nieznany bot 'greedy:5'.", ["--game", "klejnoty", "--bots", "random", "greedy:5"]),
+        ("Nieznany profil '5'. Dostepne: patroni, punkty, silnik, wyrownany, zetony.", ["--game", "klejnoty", "--bots", "random", "greedy:5"]),
         ("Bot 'greedy' potrzebuje oceny pozycji, a ta gra jej nie ma.", ["--game", "connectfour", "--bots", "random", "greedy"]),
         ("Klejnoty to gra dla 2-4 graczy, a uczestnikow jest 5.", ["--game", "klejnoty", "--bots", "random", "random", "random", "random", "random", "--games", "5"]),
         ("ConnectFour to gra dla 2-2 graczy, a uczestnikow jest 1.", ["--game", "connectfour", "--bots", "random"]),
@@ -184,7 +184,7 @@ public sealed class SimulateCommandTests : IDisposable
 
         Assert.Equal(0, code);
         Assert.Contains("--bots", output, StringComparison.Ordinal);
-        Assert.Contains("random | greedy | mcts | mcts:ITERACJE | ismcts", output, StringComparison.Ordinal);
+        Assert.Contains("random | greedy | greedy:PROFIL | mcts | mcts:ITERACJE | ismcts", output, StringComparison.Ordinal);
         Assert.Contains("Gra: connectfour, klejnoty.", output, StringComparison.Ordinal);
         Assert.Contains("Liczba partii (wielokrotnosc liczby botow).", output, StringComparison.Ordinal);
         Assert.Contains("Ziarno turnieju; to samo ziarno = ten sam raport.", output, StringComparison.Ordinal);

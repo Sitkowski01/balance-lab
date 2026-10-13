@@ -42,7 +42,7 @@ internal static class SimulateCommand
                     spec = spec with { MaxDegreeOfParallelism = count };
                 }
 
-                tournament = GameCatalog.Find(parse.GetRequiredValue(game)).Prepare(parse.GetRequiredValue(bots), spec);
+                tournament = GameCatalog.Find(parse.GetRequiredValue(game)).Prepare(parse.GetRequiredValue(bots), spec, variant: null);
             }
             catch (Exception ex) when (ex is FormatException or ArgumentException)
             {

@@ -11,7 +11,12 @@ internal static class GameCatalog
     private static readonly Dictionary<string, IGameEntry> Games = new(StringComparer.OrdinalIgnoreCase)
     {
         ["connectfour"] = new GameEntry<ConnectFourState, ConnectFourMove>(new ConnectFourGame()),
-        ["klejnoty"] = new GameEntry<KlejnotyState, KlejnotyMove>(new KlejnotyGame(), new KlejnotyEvaluator()),
+        ["klejnoty"] = new GameEntry<KlejnotyState, KlejnotyMove>(
+            new KlejnotyGame(),
+            new GreedyProfiles<KlejnotyState>(
+                new KlejnotyEvaluator(),
+                KlejnotyWeights.Profiles.ToDictionary(p => p.Key, p => (IEvaluator<KlejnotyState>)new KlejnotyEvaluator(p.Value))),
+            text => new KlejnotyGame(KlejnotyVariant.Parse(text))),
     };
 
     public static IReadOnlyCollection<string> Names => Games.Keys;
@@ -22,26 +27,69 @@ internal static class GameCatalog
             : throw new FormatException($"Nieznana gra '{name}'. Dostepne: {string.Join(", ", Names)}.");
 }
 
-/// <summary>Ukrywa typy stanu i ruchu, zeby CLI moglo obslugiwac kazda gre tak samo.</summary>
+/// <summary>
+/// Ukrywa typy stanu i ruchu, zeby CLI moglo obslugiwac kazda gre tak samo. Kazda metoda najpierw
+/// sprawdza boty i parametry (bledy wychodza od razu), a zwraca dopiero gotowa do uruchomienia rozgrywke.
+/// </summary>
 internal interface IGameEntry
 {
-    /// <summary>
-    /// Sprawdza boty i parametry turnieju (bledy wychodza od razu, przed rozgrywka) i zwraca
-    /// gotowy do uruchomienia turniej.
-    /// </summary>
-    Func<TournamentResult> Prepare(IReadOnlyList<string> bots, TournamentSpec spec);
+    Func<TournamentResult> Prepare(IReadOnlyList<string> bots, TournamentSpec spec, string? variant);
+
+    Func<LeagueReport> PrepareLeague(IReadOnlyList<string> bots, TournamentSpec perPair, string? variant);
+
+    Func<ComparisonReport> PrepareComparison(IReadOnlyList<string> bots, TournamentSpec spec, string variant);
 }
 
-/// <param name="evaluator">Ocena pozycji dla bota greedy, jesli gra ja ma.</param>
-internal sealed class GameEntry<TState, TMove>(IGame<TState, TMove> game, IEvaluator<TState>? evaluator = null) : IGameEntry
+/// <summary>Oceny pozycji dla bota greedy: domyslna i nazwane profile strategii.</summary>
+internal sealed record GreedyProfiles<TState>(IEvaluator<TState> Default, IReadOnlyDictionary<string, IEvaluator<TState>> Named)
+    where TState : notnull;
+
+/// <param name="profiles">Oceny pozycji dla bota greedy, jesli gra je ma.</param>
+/// <param name="variants">Tworzy gre z wariantem zasad z tekstu, jesli gra ma warianty.</param>
+internal sealed class GameEntry<TState, TMove>(
+    IGame<TState, TMove> game,
+    GreedyProfiles<TState>? profiles = null,
+    Func<string, IGame<TState, TMove>>? variants = null) : IGameEntry
     where TState : notnull
     where TMove : notnull
 {
-    public Func<TournamentResult> Prepare(IReadOnlyList<string> bots, TournamentSpec spec)
+    public Func<TournamentResult> Prepare(IReadOnlyList<string> bots, TournamentSpec spec, string? variant)
+    {
+        var (played, contestants) = (WithVariant(variant), Contestants(bots));
+        Tournament.Validate(played, contestants, spec);
+        return () => Tournament.Run(played, contestants, spec);
+    }
+
+    public Func<LeagueReport> PrepareLeague(IReadOnlyList<string> bots, TournamentSpec perPair, string? variant)
+    {
+        var (played, contestants) = (WithVariant(variant), Contestants(bots));
+        if (contestants.Length < 2)
+        {
+            throw new ArgumentException("Liga potrzebuje co najmniej dwoch botow.", nameof(bots));
+        }
+
+        // Liga gra parami: sprawdzamy pierwsza pare, reszta ma te same parametry.
+        Tournament.Validate(played, contestants[..2], perPair);
+        return () => League.Run(played, contestants, perPair);
+    }
+
+    public Func<ComparisonReport> PrepareComparison(IReadOnlyList<string> bots, TournamentSpec spec, string variant)
+    {
+        var (played, contestants) = (WithVariant(variant), Contestants(bots));
+        Tournament.Validate(game, contestants, spec);
+        return () => Comparison.Run(game, played, contestants, spec);
+    }
+
+    private Contestant<TState, TMove>[] Contestants(IReadOnlyList<string> bots)
     {
         var names = BotSpec.UniqueNames(bots);
-        var contestants = bots.Select((bot, i) => BotSpec.Parse<TState, TMove>(bot, names[i], evaluator)).ToArray();
-        Tournament.Validate(game, contestants, spec);
-        return () => Tournament.Run(game, contestants, spec);
+        return [.. bots.Select((bot, i) => BotSpec.Parse<TState, TMove>(bot, names[i], profiles))];
     }
+
+    private IGame<TState, TMove> WithVariant(string? variant) => (variant, variants) switch
+    {
+        (null, _) => game,
+        (_, null) => throw new FormatException($"{game.Name} nie ma wariantow zasad."),
+        _ => variants(variant),
+    };
 }
