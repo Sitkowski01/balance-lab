@@ -21,6 +21,8 @@ public static class ReportJson
 
     public static string Serialize(LeagueReport report) => JsonSerializer.Serialize(report, Options);
 
+    public static string Serialize(ComparisonReport report) => JsonSerializer.Serialize(report, Options);
+
     public static TournamentReport Deserialize(string json) =>
         JsonSerializer.Deserialize<TournamentReport>(json, Options) ?? throw new JsonException("Pusty raport.");
 }
