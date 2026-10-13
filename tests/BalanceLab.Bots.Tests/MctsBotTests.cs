@@ -115,14 +115,18 @@ public sealed class MctsBotTests
     [Fact]
     public void Time_limit_alone_lifts_the_default_iteration_cap()
     {
-        // Progi celowo luzne: na obciazonej maszynie CI czas moze sie rozjechac, a test ma nie migac.
-        var bot = new MctsBot<NimState, int>(7, new MctsOptions { TimeLimit = TimeSpan.FromMilliseconds(100) });
+        var options = new MctsOptions { TimeLimit = TimeSpan.FromMilliseconds(100) };
+        var bot = new MctsBot<NimState, int>(7, options);
 
         var clock = Stopwatch.StartNew();
         var search = bot.Search(Nim, new NimState(19, 2, 0, null));
 
+        // Limit sam w sobie sprawdzamy bez zegara; liczba iteracji w 100 ms zalezy od obciazenia maszyny
+        // (pod pelnym obciazeniem bywalo ich mniej niz 1000), wiec jej nie sprawdzamy. Szukanie z limitem
+        // 1000 iteracji trwa ok. 0,5 ms — skoro trwalo ponad 90 ms, zatrzymal je zegar, nie limit.
+        Assert.Equal(int.MaxValue, options.IterationLimit);
         Assert.InRange(clock.ElapsedMilliseconds, 90, 10_000);
-        Assert.True(search.Iterations > 1_000, $"iteracje: {search.Iterations}");
+        Assert.True(search.Iterations > 0);
     }
 
     [Fact]
