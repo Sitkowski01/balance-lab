@@ -5,10 +5,12 @@ namespace BalanceLab.Games.Klejnoty;
 /// <summary>
 /// Prosta ocena pozycji: punkty licza sie najbardziej, potem rabaty (trwale), potem zetony.
 /// Do tego postep ku najlepszej osiagalnej karcie i ku patronom — inaczej bot zbieralby zetony
-/// bez celu. Wagi dobrane recznie; raport balansu moze porownac rozne profile.
+/// bez celu. Wagi to profil strategii (<see cref="KlejnotyWeights.Profiles"/>); domyslnie wyrownany.
 /// </summary>
-public sealed class KlejnotyEvaluator : IEvaluator<KlejnotyState>
+public sealed class KlejnotyEvaluator(KlejnotyWeights? weights = null) : IEvaluator<KlejnotyState>
 {
+    public KlejnotyWeights Weights { get; } = weights ?? KlejnotyWeights.Balanced;
+
     public double Evaluate(KlejnotyState state, int player)
     {
         ArgumentNullException.ThrowIfNull(state);
@@ -19,20 +21,21 @@ public sealed class KlejnotyEvaluator : IEvaluator<KlejnotyState>
         }
 
         var me = state.Players[player];
-        var value = (20.0 * me.Points) + (6.0 * me.Bonuses.Total) + (3.0 * me.Tokens[Gem.Gold])
-            + (2.0 * (me.Tokens.Total - me.Tokens[Gem.Gold])) + me.Reserved.Length
+        var w = Weights;
+        var value = (w.Points * me.Points) + (w.Bonuses * me.Bonuses.Total) + (w.Gold * me.Tokens[Gem.Gold])
+            + (w.Tokens * (me.Tokens.Total - me.Tokens[Gem.Gold])) + (w.Reserved * me.Reserved.Length)
             // Nadmiar ponad 10 i tak trzeba oddac: bez kary bot bralby zetony, ktore zaraz zwroci.
-            - (3.0 * Math.Max(0, me.Tokens.Total - KlejnotyState.MaxTokens));
+            - (w.Overflow * Math.Max(0, me.Tokens.Total - KlejnotyState.MaxTokens));
 
         // Najlepsza karta w zasiegu: wartosciowa i z malym brakiem zetonow.
         var targets = state.Market.Where(id => id >= 0).Concat(me.Reserved.Select(r => r.Card));
-        value += targets.Select(id => ((3.0 * state.Variant.AllCards[id].Points) + 1) / (1 + Shortfall(me, state.Variant.AllCards[id]))).DefaultIfEmpty(0).Max();
+        value += w.Target * targets.Select(id => ((3.0 * state.Variant.AllCards[id].Points) + 1) / (1 + Shortfall(me, state.Variant.AllCards[id]))).DefaultIfEmpty(0).Max();
 
         // Patroni: udzial juz zebranych rabatow w wymaganiu.
         foreach (var patron in state.Patrons.Select(id => state.Variant.AllPatrons[id]))
         {
             var have = Enumerable.Range(0, Gems.Colors).Sum(c => Math.Min(me.Bonuses[(Gem)c], patron.Requirement[(Gem)c]));
-            value += 4.0 * have / patron.Requirement.Total;
+            value += w.Patrons * have / patron.Requirement.Total;
         }
 
         return value;
