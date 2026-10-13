@@ -1,4 +1,5 @@
 using System.Globalization;
+using BalanceLab.Reporting;
 using BalanceLab.Simulation;
 
 namespace BalanceLab.Cli;
@@ -30,6 +31,18 @@ internal static class Summary
             output.WriteLine(string.Create(c, $"Dlugosc partii (ruchy): srednio {length.Mean:0.0}, mediana {length.Median}, 90% ponizej {length.P90}, od {length.Min} do {length.Max}"));
         }
 
+        if (!report.Items.IsEmpty)
+        {
+            var flagged = report.Items.Select(i => (Item: i, Verdict: ItemVerdicts.Of(i, report.GroupOf(i)))).Where(j => j.Verdict != ItemVerdict.None).ToArray();
+            var groups = string.Join(", ", report.ItemGroups.Select(g => $"{g.Group} {Percent(g.OwnerWins.Rate)}"));
+            output.WriteLine();
+            output.WriteLine(string.Create(c, $"Karty: wlasciciel przecietnej karty wygrywa ({groups}); odstaje {flagged.Length} z {report.Items.Length}"));
+            foreach (var (item, verdict) in flagged.OrderBy(f => f.Verdict).Take(10))
+            {
+                output.WriteLine(string.Create(c, $"  {ItemVerdicts.Describe(verdict),-10} {item.Name,-40} brana {Percent(item.Taken.Rate),6}, wlasciciel wygrywa {Rate(item.OwnerWins)}"));
+            }
+        }
+
         var perSecond = report.Games / Math.Max(elapsed.TotalSeconds, 1e-9);
         output.WriteLine(string.Create(c, $"Czas: {elapsed.TotalSeconds:0.00} s ({perSecond:0} partii/s)"));
     }
@@ -45,6 +58,31 @@ internal static class Summary
             output.WriteLine(string.Create(c, $"{r.Name,-20} {r.Elo,8:0.0}  {r.MeanScore,12:0.000}"));
         }
     }
+
+    public static void WriteComparison(TextWriter output, ComparisonReport report)
+    {
+        output.WriteLine($"{report.Baseline.Game} -> {report.Variant.Game}: {report.Baseline.Games} partii na strone, ziarno {report.Baseline.Seed}");
+        output.WriteLine("(roznica wariant - oryginal, 95% przedzial; * = istotna)");
+        output.WriteLine();
+        foreach (var row in report.Seats.Concat(report.Contestants))
+        {
+            output.WriteLine($"{row.Name,-20} {Change(row.Wins)}");
+        }
+
+        if (report.Length is { } length)
+        {
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{"dlugosc partii",-20} {length.Delta:+0.0;-0.0;0.0} ruchu ({length.Low:+0.0;-0.0;0.0} - {length.High:+0.0;-0.0;0.0}){(length.Significant ? " *" : "")}"));
+        }
+
+        var changed = report.Items.Count(i => i.Taken.Significant || i.OwnerWins.Significant);
+        if (!report.Items.IsEmpty)
+        {
+            output.WriteLine($"Karty zmienione istotnie: {changed} z {report.Items.Length}");
+        }
+    }
+
+    private static string Change(Difference d) => string.Create(CultureInfo.InvariantCulture,
+        $"{d.Delta * 100:+0.0;-0.0;0.0} pp ({d.Low * 100:+0.0;-0.0;0.0} - {d.High * 100:+0.0;-0.0;0.0}){(d.Significant ? " *" : "")}");
 
     // Bez ukonczonych partii "0%" sugerowaloby zmierzony wynik, a to brak danych.
     private static string Rate(Proportion p) => p.Trials == 0 ? "-" : Percent(p.Rate);

@@ -101,6 +101,10 @@ public sealed class SimulateCommandTests : IDisposable
         ("Nieznany bot 'mcts:abc'.", ["--game", "connectfour", "--bots", "random", "mcts:abc"]),
         ("Nieznany bot 'random:5'.", ["--game", "connectfour", "--bots", "random", "random:5"]),
         ("Nieznany profil '5'. Dostepne: patroni, punkty, silnik, wyrownany, zetony.", ["--game", "klejnoty", "--bots", "random", "greedy:5"]),
+        ("ConnectFour nie ma wariantow zasad.", ["--game", "connectfour", "--bots", "random", "random", "--variant", "win=3"]),
+        ("Nieznana zmiana 'szybko=1'.", ["--game", "klejnoty", "--bots", "random", "random", "--variant", "szybko=1"]),
+        ("Zmiana 'card99.points=1': numer 99 poza zakresem 0-89.", ["--game", "klejnoty", "--bots", "random", "random", "--variant", "card99.points=1"]),
+        ("--html: katalog", ["--game", "connectfour", "--bots", "random", "random", "--html", Path.Combine("nie-ma-takiego-katalogu", "r.html")]),
         ("Bot 'greedy' potrzebuje oceny pozycji, a ta gra jej nie ma.", ["--game", "connectfour", "--bots", "random", "greedy"]),
         ("Klejnoty to gra dla 2-4 graczy, a uczestnikow jest 5.", ["--game", "klejnoty", "--bots", "random", "random", "random", "random", "random", "--games", "5"]),
         ("ConnectFour to gra dla 2-2 graczy, a uczestnikow jest 1.", ["--game", "connectfour", "--bots", "random"]),
@@ -187,10 +191,12 @@ public sealed class SimulateCommandTests : IDisposable
         Assert.Contains("random | greedy | greedy:PROFIL | mcts | mcts:ITERACJE | ismcts", output, StringComparison.Ordinal);
         Assert.Contains("Gra: connectfour, klejnoty.", output, StringComparison.Ordinal);
         Assert.Contains("Liczba partii (wielokrotnosc liczby botow).", output, StringComparison.Ordinal);
-        Assert.Contains("Ziarno turnieju; to samo ziarno = ten sam raport.", output, StringComparison.Ordinal);
+        Assert.Contains("Ziarno; to samo ziarno = ten sam raport.", output, StringComparison.Ordinal);
         Assert.Contains("Liczba watkow (domyslnie wszystkie rdzenie).", output, StringComparison.Ordinal);
         Assert.Contains("Plik na raport JSON.", output, StringComparison.Ordinal);
-        Assert.Contains("Plik JSON z kazda partia (ziarno, miejsca, wynik).", output, StringComparison.Ordinal);
+        Assert.Contains("Plik JSON z kazda partia (ziarno, miejsca, wynik, karty).", output, StringComparison.Ordinal);
+        Assert.Contains("Plik na raport HTML", output, StringComparison.Ordinal);
+        Assert.Contains("cardID.cost=W,U,G,R,K", output, StringComparison.Ordinal);
         Assert.Contains("Rozgrywa turniej botow i liczy statystyki balansu.", output, StringComparison.Ordinal);
         Assert.Contains("Balance Lab - laboratorium balansu gier planszowych.", Run("--help").Output, StringComparison.Ordinal);
     }
