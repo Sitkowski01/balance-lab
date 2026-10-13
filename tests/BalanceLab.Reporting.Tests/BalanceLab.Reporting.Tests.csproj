@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BalanceLab.Reporting\BalanceLab.Reporting.csproj" />
+  </ItemGroup>
+
+</Project>
