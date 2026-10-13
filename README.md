@@ -5,8 +5,9 @@ rozgrywają tysiące partii, a raport pokazuje, co jest niezbalansowane: przewag
 przy stole, dominujące strategie, za mocne i martwe karty oraz skutki zmian w zasadach.
 
 > Projekt w budowie. Gotowe: kontrakt silnika z ukrytą informacją, deterministyczny generator,
-> Czwórki (ConnectFour) i Klejnoty (gra karciana w stylu Splendora), boty: losowy, heurystyczny,
-> MCTS i ISMCTS, symulator turniejów z CLI.
+> Czwórki (ConnectFour) i Klejnoty (gra karciana w stylu Splendora), boty: losowy, heurystyczny
+> (z profilami strategii), MCTS i ISMCTS, symulator turniejów, liga z rankingiem Elo, porównanie
+> wariantów zasad (A/B) i raport HTML.
 
 ## Architektura
 
@@ -15,8 +16,9 @@ src/BalanceLab.Engine              kontrakt IGame<TState, TMove>, IPlayer, Match
 src/BalanceLab.Games.ConnectFour   Czwórki na bitboardach (zna tylko silnik)
 src/BalanceLab.Games.Klejnoty      Klejnoty: zasady, ukryte talie i rezerwacje, ocena pozycji
 src/BalanceLab.Bots                RandomBot, GreedyBot, MctsBot, IsmctsBot (kontrakt, żadnej gry)
-src/BalanceLab.Simulation          turnieje równoległe, statystyki z przedziałami ufności, raport JSON
-src/BalanceLab.Cli                 balance-lab simulate — jedyne miejsce, które składa gry, boty i symulator
+src/BalanceLab.Simulation          turnieje równoległe, statystyki kart, liga (Elo), porównanie A/B, raport JSON
+src/BalanceLab.Reporting           raport HTML z wykresami SVG — zna tylko liczby z symulatora
+src/BalanceLab.Cli                 simulate | league | compare — jedyne miejsce, które składa gry, boty i symulator
 ```
 
 Gra to czyste funkcje na niemutowalnym stanie: `Setup(gracze, ziarno)`, `LegalMoves`, `Apply`
@@ -50,7 +52,7 @@ Dlugosc partii (ruchy): srednio 21.3, mediana 21, 90% ponizej 31, od 7 do 42
 
 To już jest wynik o balansie: przy losowej grze zaczynający wygrywa w Czwórkach 55% partii,
 a przedział ufności wyklucza 50%. Boty: `random`, `mcts`, `mcts:ITERACJE` — po jednym na miejsce
-przy stole (`greedy` i `ismcts[:ITERACJE]` też). `--games-out` zapisuje każdą partię (ziarno, miejsca, wynik), więc dowolną da się odtworzyć.
+przy stole (`greedy[:PROFIL]` i `ismcts[:ITERACJE]` też). `--games-out` zapisuje każdą partię (ziarno, miejsca, wynik), więc dowolną da się odtworzyć.
 
 ## Ukryta informacja i ISMCTS
 
@@ -110,6 +112,70 @@ dotnet run -c Release --project src/BalanceLab.Cli -- simulate --game klejnoty -
 - CLI sprawdza parametry i katalogi wyjściowe przed startem. Kody wyjścia: 0 — sukces,
   1 — symulacja się nie udała, 2 — błędne parametry.
 - Raport JSON zapisuje ziarna jako tekst — JavaScript obcina liczby powyżej 2^53.
+
+## Raport balansu
+
+Trzy pytania projektanta, trzy polecenia. Każde wypisuje podsumowanie w konsoli, a z `--html`
+zapisuje samodzielną stronę z wykresami (SVG, bez JavaScriptu i zasobów z sieci, tryb jasny i ciemny).
+
+**Czy jakaś prosta strategia dominuje?** `league` rozgrywa każdy profil z każdym. Profile to ta sama
+ocena pozycji z innymi wagami: `wyrownany`, `punkty` (od razu drogie karty), `silnik` (najpierw tanie
+rabaty), `patroni`, `zetony` (chomikowanie).
+
+```bash
+balance-lab league --game klejnoty --bots greedy:wyrownany greedy:punkty greedy:silnik greedy:patroni greedy:zetony --games 400 --html liga.html
+```
+
+```
+Uczestnik                 Elo  sredni wynik
+greedy:silnik          1622.8         0.675
+greedy:patroni         1601.0         0.642
+greedy:wyrownany       1556.7         0.572
+greedy:punkty          1507.5         0.494
+greedy:zetony          1212.0         0.113
+```
+
+Elo jest dopasowane do wszystkich partii naraz modelem Bradleya-Terry'ego (algorytm MM), a nie
+liczone partia po partii — klasyczne Elo zależałoby od kolejności partii, której w symulacji nie ma.
+Test sprawdza warunek największej wiarygodności: dla każdego gracza oczekiwana liczba punktów równa się
+zdobytej. Każda para ma ziarno z własnego numeru, więc dopisanie bota nie zmienia partii pozostałych par.
+
+**Które karty są martwe albo za mocne?** `simulate` liczy dla każdej karty, w jakiej części partii ktoś
+ją kupił i jak często wygrał jej właściciel. Pierwsza wersja porównywała kartę ze średnią wszystkich kart
+i oznaczyła 58 z 90 kart jako „za mocne” — same tanie karty z poziomu 1, które kupuje każdy, podczas gdy
+drogie kupuje głównie ten, kto już prowadzi. Dlatego gra podaje grupę elementu (`IItemTracking.ItemGroup`,
+tu: poziom karty), a karta jest oceniana tylko na tle swojej grupy i dopiero wtedy, gdy cały 95% przedział
+odstaje o więcej niż 3 punkty procentowe:
+
+```
+Karty: wlasciciel przecietnej karty wygrywa (poziom 1 39.5%, poziom 2 33.4%, poziom 3 44.4%); odstaje 8 z 90
+  za mocna   #51 poz.2 U 3 pkt, koszt U6              brana  26.7%, wlasciciel wygrywa 40.0%
+  za slaba   #7 poz.1 W 1 pkt, koszt K4               brana  63.3%, wlasciciel wygrywa 34.7%
+  martwa     #77 poz.3 U 5 pkt, koszt W7 U3           brana   4.8%, wlasciciel wygrywa 56.6%
+  ...
+```
+
+To korelacja, nie dowód (silny gracz kupuje też dobre karty) — wynik mówi, co sprawdzić wariantem.
+
+**Co jeśli zmienię zasady?** `compare` gra ten sam turniej na oryginale i na wariancie
+(`--variant "card77.points=4; win=13"`: koszt i punkty kart, wymagania patronów, próg punktów).
+Obie strony grają z tych samych ziaren, więc różnica bierze się ze zmiany zasad, a nie z innego
+rozdania. Różnice odsetków mają przedział Newcombe'a (składa przedziały Wilsona; test odtwarza przykład
+z jego pracy), gwiazdka = przedział nie obejmuje zera:
+
+```
+Klejnoty -> Klejnoty (card77.points=4): 6000 partii na strone, ziarno 1
+miejsce 1            +0.3 pp (-1.4 - +2.0)
+greedy:silnik        +0.7 pp (-1.1 - +2.5)
+dlugosc partii       -0.1 ruchu (-0.3 - +0.2)
+Karty zmienione istotnie: 1 z 90
+```
+
+Tu odpowiedź brzmi: punkt mniej na karcie #77 nie rusza balansu miejsc ani strategii.
+
+Wykresy raportu HTML pilnują testy zatwierdzonych plików (`tests/BalanceLab.Reporting.Tests/Golden`):
+strona ze stałych danych porównywana znak po znaku z zatwierdzoną. Celowa zmiana wyglądu to
+`BALANCE_LAB_APPROVE=1 dotnet test`, obejrzenie strony i commit — diff pokazuje dokładnie, co się zmieniło.
 
 ## Bot MCTS
 
@@ -186,6 +252,7 @@ dotnet stryker -f stryker-connectfour.json
 dotnet stryker -f stryker-klejnoty.json
 dotnet stryker -f stryker-bots.json
 dotnet stryker -f stryker-simulation.json
+dotnet stryker -f stryker-reporting.json
 dotnet stryker -f stryker-cli.json
 dotnet run -c Release --project benchmarks/BalanceLab.Benchmarks -- --filter '*'
 ```
