@@ -1,0 +1,25 @@
+namespace BalanceLab.Engine;
+
+/// <summary>
+/// Elementy, ktore gracze zdobywaja w trakcie partii (karty, kafelki). Gra moze to dostarczyc obok
+/// zasad; symulator liczy wtedy dla kazdego elementu, jak czesto ktos go bierze i jak czesto jego
+/// wlasciciel wygrywa — tak raport znajduje martwe i za mocne karty, nie znajac samej gry.
+/// </summary>
+public interface IItemTracking<in TState>
+    where TState : notnull
+{
+    /// <summary>Liczba elementow; ich numery to 0 .. <c>ItemCount - 1</c>.</summary>
+    int ItemCount { get; }
+
+    /// <summary>Krotki opis elementu do raportu (np. koszt i punkty karty).</summary>
+    string ItemName(int item);
+
+    /// <summary>
+    /// Grupa elementow projektowanych jako rownowazne (np. karty jednego poziomu). Raport porownuje
+    /// element tylko z jego grupa: tania karte kupuje kazdy, droga glownie ten, kto juz prowadzi.
+    /// </summary>
+    string ItemGroup(int item);
+
+    /// <summary>Numery elementow, ktore <paramref name="player"/> ma w (koncowym) stanie partii.</summary>
+    IReadOnlyList<int> ItemsOf(TState state, int player);
+}

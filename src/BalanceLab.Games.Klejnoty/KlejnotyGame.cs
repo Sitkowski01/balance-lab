@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 using BalanceLab.Engine;
 
 namespace BalanceLab.Games.Klejnoty;
@@ -12,9 +13,10 @@ namespace BalanceLab.Games.Klejnoty;
 /// Same zasady siedza w <see cref="KlejnotyRules"/>; ta klasa podpina je pod kontrakt silnika.
 /// Dwa swiadome uproszczenia wobec Splendora, zeby boty mialy mniej rownowaznych ruchow:
 /// placenie jest automatyczne, a gdy pasuje kilku patronow, przychodzi ten o najnizszym numerze.
+/// Elementami dla raportu balansu sa kupione karty (zarezerwowane, ale niekupione, sie nie licza).
 /// </remarks>
 /// <param name="variant">Zasady partii; domyslnie <see cref="KlejnotyVariant.Standard"/>.</param>
-public sealed class KlejnotyGame(KlejnotyVariant? variant = null) : IGame<KlejnotyState, KlejnotyMove>
+public sealed class KlejnotyGame(KlejnotyVariant? variant = null) : IGame<KlejnotyState, KlejnotyMove>, IItemTracking<KlejnotyState>
 {
     public KlejnotyVariant Variant { get; } = variant ?? KlejnotyVariant.Standard;
 
@@ -44,4 +46,21 @@ public sealed class KlejnotyGame(KlejnotyVariant? variant = null) : IGame<Klejno
     public KlejnotyState Determinize(KlejnotyState state, int observer, ulong seed) =>
         KlejnotyRules.Determinize(state, observer, seed);
 
+    public int ItemCount => Variant.AllCards.Length;
+
+    /// <summary>Np. "#17 poz.1 U 0 pkt, koszt W1 G1 R2 K1" (U = rabat niebieski).</summary>
+    public string ItemName(int item)
+    {
+        var card = Variant.AllCards[item];
+        return string.Create(CultureInfo.InvariantCulture, $"#{card.Id} poz.{card.Tier} {"WUGRK"[(int)card.Bonus]} {card.Points} pkt, koszt {card.Cost}");
+    }
+
+    /// <summary>Poziom karty: karty jednego poziomu kosztuja i daja podobnie (wzory obrocone po kolorach).</summary>
+    public string ItemGroup(int item) => string.Create(CultureInfo.InvariantCulture, $"poziom {Variant.AllCards[item].Tier}");
+
+    public IReadOnlyList<int> ItemsOf(KlejnotyState state, int player)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        return state.Players[player].Bought;
+    }
 }
