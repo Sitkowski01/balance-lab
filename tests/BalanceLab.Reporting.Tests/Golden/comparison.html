@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Co jesli: Gra (win=12)</title>
+<style>:root { color-scheme: light; --surface: #fcfcfb; --page: #f9f9f7; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --series: #2a78d6; --critical: #d03b3b; --good: #0ca30c; --border: rgba(11,11,11,.1);
+  --d-3: #e34948; --d-2: #ec8f8e; --d-1: #f6c7c6; --d0: #f0efec; --d1: #b7d3f6; --d2: #6da7ec; --d3: #2a78d6; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; --surface: #1a1a19; --page: #0d0d0d;
+  --ink: #f0efec; --ink-2: #c3c2b7; --grid: #2c2c2a; --axis: #383835; --series: #3987e5; --border: rgba(255,255,255,.1);
+  --d-3: #e66767; --d-2: #a84a4a; --d-1: #5c3434; --d0: #383835; --d1: #1c3f6e; --d2: #2a64ad; --d3: #3987e5; } }
+:root[data-theme="dark"] { color-scheme: dark; --surface: #1a1a19; --page: #0d0d0d; --ink: #f0efec; --ink-2: #c3c2b7;
+  --grid: #2c2c2a; --axis: #383835; --series: #3987e5; --border: rgba(255,255,255,.1);
+  --d-3: #e66767; --d-2: #a84a4a; --d-1: #5c3434; --d0: #383835; --d1: #1c3f6e; --d2: #2a64ad; --d3: #3987e5; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 24px; margin: 0 0 4px; } h2 { font-size: 18px; margin: 32px 0 8px; }
+.lead, .note { color: var(--ink-2); } .note { font-size: 13px; }
+section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px 16px; margin-top: 16px; }
+svg { width: 100%; height: auto; display: block; } svg text { font: 12px system-ui, sans-serif; fill: var(--ink-2); }
+.grid { stroke: var(--grid); } .axis { stroke: var(--axis); } .ref { stroke: var(--muted); stroke-dasharray: 4 3; }
+.whisker { stroke: var(--series); stroke-width: 2; stroke-linecap: round; } .dot { fill: var(--series); stroke: var(--surface); stroke-width: 2; }
+.hot .whisker { stroke: var(--critical); } .hot .dot { fill: var(--critical); }
+.bar { fill: var(--series); } .bar.neg { fill: var(--d-3); }
+.c-3 { fill: var(--d-3); } .c-2 { fill: var(--d-2); } .c-1 { fill: var(--d-1); } .c0 { fill: var(--d0); }
+.c1 { fill: var(--d1); } .c2 { fill: var(--d2); } .c3 { fill: var(--d3); }
+svg text.cell { fill: var(--ink); text-anchor: middle; } svg text.label { fill: var(--ink); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--grid); } th { color: var(--ink-2); font-weight: 600; }
+details { margin-top: 8px; } summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+.tag { font-size: 12px; font-weight: 600; } .tag.hot { color: var(--critical); } .tag.cold { color: var(--ink-2); }</style>
+</head>
+<body>
+<main>
+<h1>Co jesli: Gra (win=12)</h1>
+<p class="lead">Ten sam turniej (900 partii, ziarno 11, te same rozdania) na zasadach &quot;Gra &lt;testowa&gt;&quot; i &quot;Gra (win=12)&quot;. Wartosci to wariant minus oryginal; czerwone = przedzial nie obejmuje zera, czyli zmiana zasad naprawde cos zmienila.</p>
+<h2>Miejsca przy stole</h2>
+<section>
+<p class="note">Czy zmiana zmniejszyla przewage ktoregos miejsca?</p>
+<svg viewBox="0 0 640 120" role="img" aria-label="Wartosci z 95% przedzialami ufnosci">
+<line class="grid" x1="180" y1="8" x2="180" y2="96"/>
+<text x="180" y="112" text-anchor="middle">-10.0 pp</text>
+<line class="ref" x1="370" y1="8" x2="370" y2="96"/>
+<text x="370" y="112" text-anchor="middle">0.0 pp</text>
+<line class="grid" x1="560" y1="8" x2="560" y2="96"/>
+<text x="560" y="112" text-anchor="middle">+10.0 pp</text>
+<g>
+<title>miejsce 1: 36.8% → 33.4%, -3.3 pp (-7.7 - +1.1)</title>
+<text class="label" x="170" y="26" text-anchor="end">miejsce 1</text>
+<line class="whisker" x1="222.9" y1="22" x2="390.4" y2="22"/>
+<circle class="dot" cx="306.5" cy="22" r="6"/>
+<text x="568" y="26">-3.3 pp</text>
+</g>
+<g>
+<title>miejsce 2: 32.3% → 32.3%, 0.0 pp (-4.3 - +4.3)</title>
+<text class="label" x="170" y="54" text-anchor="end">miejsce 2</text>
+<line class="whisker" x1="287.9" y1="50" x2="452.1" y2="50"/>
+<circle class="dot" cx="370" cy="50" r="6"/>
+<text x="568" y="54">0.0 pp</text>
+</g>
+<g>
+<title>miejsce 3: 29.5% → 32.9%, +3.3 pp (-0.9 - +7.6)</title>
+<text class="label" x="170" y="82" text-anchor="end">miejsce 3</text>
+<line class="whisker" x1="352.1" y1="78" x2="514.7" y2="78"/>
+<circle class="dot" cx="433.5" cy="78" r="6"/>
+<text x="568" y="82">+3.3 pp</text>
+</g>
+</svg>
+<details>
+<summary>Tabela z danymi</summary>
+<table>
+<thead>
+<tr>
+<th>
+</th>
+<th>Oryginal</th>
+<th>Wariant</th>
+<th>Roznica (95% przedzial)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>miejsce 1</td>
+<td>36.8%</td>
+<td>33.4%</td>
+<td>-3.3 pp (-7.7 - +1.1)</td>
+</tr>
+<tr>
+<td>miejsce 2</td>
+<td>32.3%</td>
+<td>32.3%</td>
+<td>0.0 pp (-4.3 - +4.3)</td>
+</tr>
+<tr>
+<td>miejsce 3</td>
+<td>29.5%</td>
+<td>32.9%</td>
+<td>+3.3 pp (-0.9 - +7.6)</td>
+</tr>
+</tbody>
+</table>
+</details>
+</section>
+<h2>Uczestnicy</h2>
+<section>
+<p class="note">Czy zmiana pomogla albo zaszkodzila ktorejs strategii?</p>
+<svg viewBox="0 0 640 120" role="img" aria-label="Wartosci z 95% przedzialami ufnosci">
+<line class="grid" x1="180" y1="8" x2="180" y2="96"/>
+<text x="180" y="112" text-anchor="middle">-15.0 pp</text>
+<line class="ref" x1="370" y1="8" x2="370" y2="96"/>
+<text x="370" y="112" text-anchor="middle">0.0 pp</text>
+<line class="grid" x1="560" y1="8" x2="560" y2="96"/>
+<text x="560" y="112" text-anchor="middle">+15.0 pp</text>
+<g class="hot">
+<title>silny: 44.6% → 36.8%, -7.8 pp (-12.3 - -3.3)</title>
+<text class="label" x="170" y="26" text-anchor="end">silny</text>
+<line class="whisker" x1="214.1" y1="22" x2="328.7" y2="22"/>
+<circle class="dot" cx="271.2" cy="22" r="6"/>
+<text x="568" y="26">-7.8 pp</text>
+</g>
+<g>
+<title>sredni: 33.4% → 33.4%, 0.0 pp (-4.4 - +4.4)</title>
+<text class="label" x="170" y="54" text-anchor="end">sredni</text>
+<line class="whisker" x1="314.8" y1="50" x2="425.2" y2="50"/>
+<circle class="dot" cx="370" cy="50" r="6"/>
+<text x="568" y="54">0.0 pp</text>
+</g>
+<g>
+<title>slaby: 20.6% → 20.6%, 0.0 pp (-3.7 - +3.7)</title>
+<text class="label" x="170" y="82" text-anchor="end">slaby</text>
+<line class="whisker" x1="322.6" y1="78" x2="417.4" y2="78"/>
+<circle class="dot" cx="370" cy="78" r="6"/>
+<text x="568" y="82">0.0 pp</text>
+</g>
+</svg>
+<details>
+<summary>Tabela z danymi</summary>
+<table>
+<thead>
+<tr>
+<th>
+</th>
+<th>Oryginal</th>
+<th>Wariant</th>
+<th>Roznica (95% przedzial)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>silny</td>
+<td>44.6%</td>
+<td>36.8%</td>
+<td>-7.8 pp (-12.3 - -3.3)</td>
+</tr>
+<tr>
+<td>sredni</td>
+<td>33.4%</td>
+<td>33.4%</td>
+<td>0.0 pp (-4.4 - +4.4)</td>
+</tr>
+<tr>
+<td>slaby</td>
+<td>20.6%</td>
+<td>20.6%</td>
+<td>0.0 pp (-3.7 - +3.7)</td>
+</tr>
+</tbody>
+</table>
+</details>
+</section>
+<h2>Dlugosc partii</h2>
+<section>
+<p class="note">Srednia liczba ruchow w ukonczonych partiach.</p>
+<table>
+<thead>
+<tr>
+<th>Oryginal</th>
+<th>Wariant</th>
+<th>Roznica (95% przedzial)</th>
+<th>Istotna</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>48.5</td>
+<td>41.5</td>
+<td>-7.0 (-7.9 - -6.1)</td>
+<td>tak</td>
+</tr>
+</tbody>
+</table>
+</section>
+<h2>Karty, ktore zmienily sie istotnie</h2>
+<section>
+<p class="note">Zmiana jednej karty przesuwa tez inne: gracze kupuja co innego. Tu tylko karty, ktorych wybieralnosc albo wygrane wlasciciela zmienily sie poza przypadkiem.</p>
+<p class="note">Istotnie zmienionych: 14 z 18.</p>
+<table>
+<thead>
+<tr>
+<th>Karta (w wariancie)</th>
+<th>Brana</th>
+<th>Wlasciciel wygrywa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>#17</td>
+<td>+22.7 pp (+18.2 - +27.1)</td>
+<td>0.0 pp (-6.6 - +6.6)</td>
+</tr>
+<tr>
+<td>#16</td>
+<td>+21.4 pp (+16.9 - +25.8)</td>
+<td>0.0 pp (-6.6 - +6.6)</td>
+</tr>
+<tr>
+<td>#15</td>
+<td>+20.1 pp (+15.5 - +24.5)</td>
+<td>0.0 pp (-6.6 - +6.6)</td>
+</tr>
+<tr>
+<td>#14</td>
+<td>+18.7 pp (+14.2 - +23.2)</td>
+<td>0.0 pp (-6.6 - +6.6)</td>
+</tr>
+<tr>
+<td>#13</td>
+<td>+17.4 pp (+12.8 - +21.9)</td>
+<td>0.0 pp (-6.6 - +6.6)</td>
+</tr>
+<tr>
+<td>#12</td>
+<td>+16.1 pp (+11.5 - +20.6)</td>
+<td>0.0 pp (-6.6 - +6.6)</td>
+</tr>
+<tr>
+<td>#11</td>
+<td>+14.7 pp (+10.1 - +19.2)</td>
+<td>0.0 pp (-6.6 - +6.6)</td>
+</tr>
+<tr>
+<td>#10</td>
+<td>+13.4 pp (+8.8 - +17.9)</td>
+<td>0.0 pp (-6.6 - +6.6)</td>
+</tr>
+<tr>
+<td>#9</td>
+<td>+12.0 pp (+7.4 - +16.6)</td>
+<td>0.0 pp (-6.6 - +6.6)</td>
+</tr>
+<tr>
+<td>#8</td>
+<td>+10.7 pp (+6.1 - +15.3)</td>
+<td>0.0 pp (-6.6 - +6.6)</td>
+</tr>
+<tr>
+<td>#7</td>
+<td>+9.4 pp (+4.7 - +13.9)</td>
+<td>0.0 pp (-6.6 - +6.6)</td>
+</tr>
+<tr>
+<td>#6</td>
+<td>+8.0 pp (+3.4 - +12.6)</td>
+<td>0.0 pp (-6.6 - +6.6)</td>
+</tr>
+<tr>
+<td>#5</td>
+<td>+6.7 pp (+2.1 - +11.3)</td>
+<td>0.0 pp (-6.6 - +6.6)</td>
+</tr>
+<tr>
+<td>#4</td>
+<td>+5.4 pp (+0.7 - +9.9)</td>
+<td>0.0 pp (-6.6 - +6.6)</td>
+</tr>
+</tbody>
+</table>
+</section>
+</main>
+</body>
+</html>
