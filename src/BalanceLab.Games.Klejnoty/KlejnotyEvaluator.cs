@@ -26,10 +26,10 @@ public sealed class KlejnotyEvaluator : IEvaluator<KlejnotyState>
 
         // Najlepsza karta w zasiegu: wartosciowa i z malym brakiem zetonow.
         var targets = state.Market.Where(id => id >= 0).Concat(me.Reserved.Select(r => r.Card));
-        value += targets.Select(id => ((3.0 * Cards.All[id].Points) + 1) / (1 + Shortfall(me, Cards.All[id]))).DefaultIfEmpty(0).Max();
+        value += targets.Select(id => ((3.0 * state.Variant.AllCards[id].Points) + 1) / (1 + Shortfall(me, state.Variant.AllCards[id]))).DefaultIfEmpty(0).Max();
 
         // Patroni: udzial juz zebranych rabatow w wymaganiu.
-        foreach (var patron in state.Patrons.Select(id => Cards.Patrons[id]))
+        foreach (var patron in state.Patrons.Select(id => state.Variant.AllPatrons[id]))
         {
             var have = Enumerable.Range(0, Gems.Colors).Sum(c => Math.Min(me.Bonuses[(Gem)c], patron.Requirement[(Gem)c]));
             value += 4.0 * have / patron.Requirement.Total;

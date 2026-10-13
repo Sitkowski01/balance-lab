@@ -50,7 +50,7 @@ public static partial class KlejnotyRules
             var reserved = state.Players[player].Reserved;
             for (var index = 0; index < reserved.Length; index++)
             {
-                if (player != observer && reserved[index].Hidden && Cards.All[reserved[index].Card].Tier == tier)
+                if (player != observer && reserved[index].Hidden && state.Variant.AllCards[reserved[index].Card].Tier == tier)
                 {
                     hidden.Add((player, index));
                 }

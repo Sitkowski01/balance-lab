@@ -13,14 +13,14 @@ public static partial class KlejnotyRules
     {
         var me = state.Current;
         var patrons = state.Patrons;
-        var visitor = patrons.FirstOrDefault(id => me.Bonuses.Covers(Cards.Patrons[id].Requirement), -1);
+        var visitor = patrons.FirstOrDefault(id => me.Bonuses.Covers(state.Variant.AllPatrons[id].Requirement), -1);
         if (visitor >= 0)
         {
-            me = me with { Points = me.Points + Cards.Patrons[visitor].Points, Patrons = me.Patrons.Add(visitor) };
+            me = me with { Points = me.Points + state.Variant.AllPatrons[visitor].Points, Patrons = me.Patrons.Add(visitor) };
             patrons = patrons.Remove(visitor);
         }
 
-        var finalRound = state.FinalRound || me.Points >= KlejnotyState.WinningPoints;
+        var finalRound = state.FinalRound || me.Points >= state.Variant.WinningPoints;
         var next = (state.ToMove + 1) % state.Players.Length;
         return With(state, me) with { Patrons = patrons, ToMove = next, FinalRound = finalRound, Over = finalRound && next == 0 };
     }
@@ -33,7 +33,7 @@ public static partial class KlejnotyRules
             throw new IllegalMoveException($"Karty #{card} nie ma na rynku.");
         }
 
-        var tier = Cards.All[card].Tier;
+        var tier = state.Variant.AllCards[card].Tier;
         var deck = state.Decks[tier - 1];
         if (deck.IsEmpty)
         {

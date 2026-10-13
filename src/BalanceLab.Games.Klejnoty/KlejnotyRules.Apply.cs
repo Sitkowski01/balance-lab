@@ -140,7 +140,7 @@ public static partial class KlejnotyRules
             state = TakeFromMarket(state, cardId);
         }
 
-        var card = Cards.All[cardId];
+        var card = state.Variant.AllCards[cardId];
         var pay = Payment(me, card) ?? throw new IllegalMoveException($"Nie stac na karte #{cardId} ({card.Cost}).");
         me = me with
         {

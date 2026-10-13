@@ -21,8 +21,10 @@ public static partial class KlejnotyRules
         _ => 7,
     };
 
-    public static KlejnotyState Setup(GameSetup setup)
+    /// <summary>Rozdanie; wariant zmienia liczby na kartach, ale nie tasowanie — to samo ziarno, ten sam uklad.</summary>
+    public static KlejnotyState Setup(GameSetup setup, KlejnotyVariant variant)
     {
+        ArgumentNullException.ThrowIfNull(variant);
         setup.EnsurePlayers(MinPlayers, MaxPlayers);
 
         var rng = Pcg32.Create(setup.Seed);
@@ -39,7 +41,7 @@ public static partial class KlejnotyRules
             decks.Add(deck.RemoveRange(deck.Length - KlejnotyState.SlotsPerTier, KlejnotyState.SlotsPerTier));
         }
 
-        var (patrons, _) = rng.Shuffle(Cards.Patrons.Select(p => p.Id).ToArray());
+        var (patrons, _) = rng.Shuffle(variant.AllPatrons.Select(p => p.Id).ToArray());
         var perColor = TokensPerColor(setup.PlayerCount);
         return new KlejnotyState(
             [.. Enumerable.Repeat(PlayerBoard.Empty, setup.PlayerCount)],
@@ -50,7 +52,8 @@ public static partial class KlejnotyRules
             ToMove: 0,
             Passes: 0,
             FinalRound: false,
-            Over: false);
+            Over: false,
+            variant);
     }
 
     public static IReadOnlyList<KlejnotyMove> LegalMoves(KlejnotyState state)
@@ -105,8 +108,8 @@ public static partial class KlejnotyRules
             }
         }
 
-        moves.AddRange(state.Market.Where(id => id >= 0 && Payment(me, Cards.All[id]) is not null).Select(KlejnotyMove.Buy));
-        moves.AddRange(me.Reserved.Where(r => Payment(me, Cards.All[r.Card]) is not null).Select(r => KlejnotyMove.BuyReserved(r.Card)));
+        moves.AddRange(state.Market.Where(id => id >= 0 && Payment(me, state.Variant.AllCards[id]) is not null).Select(KlejnotyMove.Buy));
+        moves.AddRange(me.Reserved.Where(r => Payment(me, state.Variant.AllCards[r.Card]) is not null).Select(r => KlejnotyMove.BuyReserved(r.Card)));
 
         if (moves.Count == 0)
         {

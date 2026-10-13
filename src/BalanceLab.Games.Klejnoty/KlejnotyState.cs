@@ -23,7 +23,8 @@ public sealed record PlayerBoard(
 /// Rynek to 4 sloty na kazdy poziom; pusty slot (wyczerpana talia) ma wartosc -1.
 /// </summary>
 /// <param name="Passes">Ile ruchow z rzedu to pasy; gdy pasuja wszyscy po kolei, partia sie konczy.</param>
-/// <param name="FinalRound">Ktos ma 15 punktow: dogrywamy runde do ostatniego gracza.</param>
+/// <param name="FinalRound">Ktos ma prog punktow: dogrywamy runde do ostatniego gracza.</param>
+/// <param name="Variant">Zasady tej partii (karty, patroni, prog); stale od poczatku do konca.</param>
 public sealed record KlejnotyState(
     ImmutableArray<PlayerBoard> Players,
     Gems Bank,
@@ -33,12 +34,12 @@ public sealed record KlejnotyState(
     int ToMove,
     int Passes,
     bool FinalRound,
-    bool Over)
+    bool Over,
+    KlejnotyVariant Variant)
 {
     public const int SlotsPerTier = 4;
     public const int MaxTokens = 10;
     public const int MaxReserved = 3;
-    public const int WinningPoints = 15;
 
     public PlayerBoard Current => Players[ToMove];
 
@@ -46,7 +47,7 @@ public sealed record KlejnotyState(
     public Card? MarketCard(int tier, int slot)
     {
         var id = Market[MarketIndex(tier, slot)];
-        return id < 0 ? null : Cards.All[id];
+        return id < 0 ? null : Variant.AllCards[id];
     }
 
     internal static int MarketIndex(int tier, int slot) => ((tier - 1) * SlotsPerTier) + slot;
