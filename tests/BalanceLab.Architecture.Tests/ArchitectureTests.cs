@@ -54,7 +54,14 @@ public sealed class ArchitectureTests
     public void Simulator_runs_any_game_with_any_player()
     {
         // Gry i boty sklada dopiero CLI; symulator zna tylko kontrakt silnika.
-        AssertNoDependency("BalanceLab.Simulation", "BalanceLab.Games", "BalanceLab.Bots", "BalanceLab.Cli");
+        AssertNoDependency("BalanceLab.Simulation", "BalanceLab.Games", "BalanceLab.Bots", "BalanceLab.Cli", "BalanceLab.Reporting");
+    }
+
+    [Fact]
+    public void Report_shows_simulation_results_without_knowing_games_or_bots()
+    {
+        // Raport HTML dziala dla kazdej gry: zna tylko liczby z symulatora, nie zasady ani boty.
+        AssertNoDependency("BalanceLab.Reporting", "BalanceLab.Games", "BalanceLab.Bots", "BalanceLab.Cli");
     }
 
     [Theory]

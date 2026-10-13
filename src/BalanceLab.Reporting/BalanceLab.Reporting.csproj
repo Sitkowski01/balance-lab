@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <!-- Testy wykresow sprawdzaja wspolrzedne bez skladania calej strony. -->
+    <InternalsVisibleTo Include="BalanceLab.Reporting.Tests" />
+  </ItemGroup>
+
+  <!-- Raport zna tylko wyniki symulatora: zadnej gry ani bota. -->
+  <ItemGroup>
+    <ProjectReference Include="..\BalanceLab.Simulation\BalanceLab.Simulation.csproj" />
+  </ItemGroup>
+
+</Project>
