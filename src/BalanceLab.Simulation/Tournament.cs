@@ -51,7 +51,11 @@ public static class Tournament
             throw failure;
         }
 
-        return new TournamentResult(Statistics.Summarize(game.Name, spec, [.. contestants.Select(c => c.Name)], records), [.. records]);
+        ItemInfo[] items = game is IItemTracking<TState> tracking
+            ? [.. Enumerable.Range(0, tracking.ItemCount).Select(i => new ItemInfo(tracking.ItemName(i), tracking.ItemGroup(i)))]
+            : [];
+        var report = Statistics.Summarize(game.Name, spec, [.. contestants.Select(c => c.Name)], records, items);
+        return new TournamentResult(report, [.. records]);
     }
 
     /// <summary>
@@ -78,7 +82,31 @@ public static class Tournament
         var players = seating.Select((c, seat) => c.Create(SeedFor(spec.Seed, index, seat + 1))).ToArray();
         var match = Match.Play(game, new GameSetup(n, seed), players, spec.MaxMoves);
 
-        return new GameRecord(index, seed, [.. seating.Select(c => c.Name)], match.Scores, match.Moves.Length, match.Completed);
+        return new GameRecord(index, seed, [.. seating.Select(c => c.Name)], match.Scores, match.Moves.Length, match.Completed)
+        {
+            Items = game is IItemTracking<TState> tracking
+                ? [.. Enumerable.Range(0, n).Select(seat => CheckedItems(tracking, match.FinalState, seat))]
+                : [],
+        };
+    }
+
+    /// <summary>
+    /// Numer spoza 0..ItemCount−1 to blad gry; zlapany tu, przerywa partie z jej numerem i ziarnem,
+    /// zamiast wysypac statystyki po calym turnieju.
+    /// </summary>
+    private static ImmutableArray<int> CheckedItems<TState>(IItemTracking<TState> tracking, TState state, int seat)
+        where TState : notnull
+    {
+        var items = tracking.ItemsOf(state, seat).ToImmutableArray();
+        foreach (var item in items)
+        {
+            if (item < 0 || item >= tracking.ItemCount)
+            {
+                throw new InvalidOperationException($"Gra podala element {item} spoza zakresu 0-{tracking.ItemCount - 1}.");
+            }
+        }
+
+        return items;
     }
 
     /// <summary>

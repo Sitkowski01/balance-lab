@@ -9,7 +9,8 @@ public sealed class StatisticsTests
 
         var length = Statistics.Summarize("x", new TournamentSpec(10, 1), ["a", "b"], games).Length;
 
-        Assert.Equal(new LengthStats(5.5, 1, 5, 9, 10), length);
+        Assert.Equal(new LengthStats(5.5, 1, 5, 9, 10), length! with { StdDev = 0 });
+        Assert.Equal(Math.Sqrt(82.5 / 9), length.StdDev, 12);
     }
 
     [Fact]
@@ -20,7 +21,7 @@ public sealed class StatisticsTests
         var report = Statistics.Summarize("x", new TournamentSpec(3, 1), ["a", "b"], games);
 
         Assert.Equal((2, 1), (report.Completed, report.Draws));
-        Assert.Equal(new LengthStats(5, 4, 4, 6, 6), report.Length);
+        Assert.Equal(new LengthStats(5, 4, 4, 6, 6) { StdDev = Math.Sqrt(2) }, report.Length);
         Assert.Equal(Proportion.Of(1, 2), report.Contestants[0].Wins);
         Assert.Equal(0.75, report.Contestants[0].MeanScore);
         Assert.Equal((0.75, 0.25), (report.Seats[0].MeanScore, report.Seats[1].MeanScore));

@@ -1,12 +1,15 @@
+using System.Collections.Immutable;
+
 namespace BalanceLab.Simulation;
 
 /// <summary>Liczy raport z rozegranych partii. Partie nieskonczone nie wchodza do odsetkow wygranych.</summary>
 internal static class Statistics
 {
-    public static TournamentReport Summarize(string game, TournamentSpec spec, IReadOnlyList<string> names, IReadOnlyList<GameRecord> records)
+    public static TournamentReport Summarize(string game, TournamentSpec spec, IReadOnlyList<string> names, IReadOnlyList<GameRecord> records, IReadOnlyList<ItemInfo>? items = null)
     {
         var completed = records.Where(r => r.Completed).ToArray();
         var winners = completed.Select(r => r.WinningSeat).ToArray(); // liczone raz, nie dla kazdego uczestnika
+        var (itemStats, groups) = Items(completed, winners, items ?? []);
 
         var contestants = names.Select(name =>
         {
@@ -30,7 +33,44 @@ internal static class Statistics
             winners.Count(w => w is null),
             [.. contestants],
             [.. seats],
-            Lengths(completed));
+            Lengths(completed))
+        {
+            Items = itemStats,
+            ItemGroups = groups,
+        };
+    }
+
+    private static (ImmutableArray<ItemStats> Items, ImmutableArray<GroupStats> Groups) Items(GameRecord[] completed, int?[] winners, IReadOnlyList<ItemInfo> items)
+    {
+        if (items.Count == 0)
+        {
+            return ([], []); // gra nie sledzi elementow
+        }
+
+        var games = new int[items.Count];
+        var owned = new int[items.Count];
+        var ownerWins = new int[items.Count];
+        for (var g = 0; g < completed.Length; g++)
+        {
+            var seen = new HashSet<int>();
+            for (var seat = 0; seat < completed[g].Items.Length; seat++)
+            {
+                foreach (var item in completed[g].Items[seat])
+                {
+                    owned[item]++;
+                    ownerWins[item] += winners[g] == seat ? 1 : 0;
+                    games[item] += seen.Add(item) ? 1 : 0; // dwoch graczy z tym samym elementem to dalej jedna partia
+                }
+            }
+        }
+
+        var stats = items.Select((info, item) =>
+            new ItemStats(item, info.Name, info.Group, Proportion.Of(games[item], completed.Length), Proportion.Of(ownerWins[item], owned[item])));
+        // Grupa w kolejnosci pierwszego wystapienia; jej odsetek liczony po wszystkich posiadaniach jej elementow,
+        // lacznie z ocenianym — mocna karta lekko podnosi wlasna poprzeczke (przy ~30 kartach w grupie niewiele).
+        var groups = Enumerable.Range(0, items.Count).GroupBy(item => items[item].Group).Select(group =>
+            new GroupStats(group.Key, Proportion.Of(group.Sum(item => ownerWins[item]), group.Sum(item => owned[item]))));
+        return ([.. stats], [.. groups]);
     }
 
     private static LengthStats? Lengths(GameRecord[] completed)
@@ -44,6 +84,8 @@ internal static class Statistics
         // Percentyl metoda "najblizszej rangi": wartosc, ponizej ktorej jest co najmniej p% partii.
         int Percentile(double p) => sorted[(int)Math.Ceiling(p * sorted.Length) - 1];
 
-        return new LengthStats(sorted.Average(), sorted[0], Percentile(0.5), Percentile(0.9), sorted[^1]);
+        var mean = sorted.Average();
+        var variance = sorted.Length < 2 ? 0 : sorted.Sum(m => (m - mean) * (m - mean)) / (sorted.Length - 1);
+        return new LengthStats(mean, sorted[0], Percentile(0.5), Percentile(0.9), sorted[^1]) { StdDev = Math.Sqrt(variance) };
     }
 }
