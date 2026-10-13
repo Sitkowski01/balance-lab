@@ -19,6 +19,8 @@ public static class ReportJson
 
     public static string Serialize(IEnumerable<GameRecord> games) => JsonSerializer.Serialize(games, Options);
 
+    public static string Serialize(LeagueReport report) => JsonSerializer.Serialize(report, Options);
+
     public static TournamentReport Deserialize(string json) =>
         JsonSerializer.Deserialize<TournamentReport>(json, Options) ?? throw new JsonException("Pusty raport.");
 }
